@@ -1,0 +1,8 @@
+node_modules
+.next
+.env*
+!.env.example
+.vercel
+coverage
+.claude
+.DS_Store

@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server'; import {getSession} from '@/lib/auth'; import {demoNotifications} from '@/lib/demo-store';
+export async function GET(){const u=await getSession();if(!u)return NextResponse.json({error:'Unauthorized'},{status:401});if(process.env.DEMO_MODE==='true')return NextResponse.json({notifications:demoNotifications(u.id)});const {prisma}=await import('@/lib/prisma');return NextResponse.json({notifications:await prisma.notification.findMany({where:{userId:u.id},orderBy:{createdAt:'desc'},take:50})});}
