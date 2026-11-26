@@ -60,26 +60,22 @@ export default function PushOptIn() {
 
   if (state === 'done') {
     return (
-      <div className="notice" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>Push notifications enabled — you'll be alerted when your visitor arrives.</span>
+      <div className="rounded-xl px-4 py-2.5 text-sm font-medium mb-4" style={{ background: 'oklch(0.52 0.15 145 / 0.1)', color: 'oklch(0.35 0.12 145)', border: '1px solid oklch(0.52 0.15 145 / 0.25)' }}>
+        Push notifications enabled — you'll be alerted when your visitor arrives.
       </div>
     );
   }
 
   if (state === 'prompt') {
     return (
-      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>Enable visitor arrival alerts</div>
-          <div style={{ fontSize: 13, color: '#475569', marginTop: 2 }}>Get notified on your device the moment your visitor is let in.</div>
+      <div className="rounded-xl px-4 py-3 mb-4 flex items-center gap-4 flex-wrap" style={{ background: 'oklch(0.38 0.28 265 / 0.06)', border: '1px solid oklch(0.38 0.28 265 / 0.2)' }}>
+        <div className="flex-1" style={{ minWidth: 200 }}>
+          <div className="text-sm font-semibold" style={{ color: 'var(--afit-navy)' }}>Enable visitor arrival alerts</div>
+          <div className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Get notified on your device the moment your visitor is let in.</div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary" style={{ fontSize: 13, padding: '6px 14px' }} onClick={handleEnable}>
-            Enable
-          </button>
-          <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={handleDismiss}>
-            Not now
-          </button>
+        <div className="flex gap-2">
+          <button className="h-8 px-3 rounded-lg text-xs font-medium text-white transition-opacity hover:opacity-90" style={{ background: 'var(--sidebar)' }} onClick={handleEnable}>Enable</button>
+          <button className="h-8 px-3 rounded-lg text-xs font-medium transition-colors" style={{ border: '1px solid var(--border)', background: 'white' }} onClick={handleDismiss}>Not now</button>
         </div>
       </div>
     );
@@ -87,7 +83,7 @@ export default function PushOptIn() {
 
   if (state === 'subscribing') {
     return (
-      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#475569' }}>
+      <div className="rounded-xl px-4 py-2.5 text-sm mb-4" style={{ background: 'oklch(0.38 0.28 265 / 0.06)', color: 'var(--muted-foreground)', border: '1px solid oklch(0.38 0.28 265 / 0.2)' }}>
         Enabling notifications…
       </div>
     );
