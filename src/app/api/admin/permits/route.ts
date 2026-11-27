@@ -54,6 +54,7 @@ export async function GET(req: Request) {
       visitDate: p.visitDate.toISOString().slice(0, 10),
       visitEndDate: p.visitEndDate?.toISOString().slice(0, 10) ?? null,
       chargeAmount: p.chargeAmount ? Number(p.chargeAmount) : null,
+      chargeStatus: p.chargeStatus ?? null,
       visitor: p.visitor,
       resident: { fullName: p.resident.user.fullName, houseNumber: p.resident.houseNumber },
       visit: p.visit,

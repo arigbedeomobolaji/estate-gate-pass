@@ -4,7 +4,7 @@ import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
-import { Users, UserCheck, FileText, Activity, DoorOpen, ClipboardList, Settings, SlidersHorizontal } from 'lucide-react';
+import { Users, UserCheck, FileText, Activity, DoorOpen, ClipboardList, Settings, SlidersHorizontal, LogIn, LogOut, Clock, XCircle } from 'lucide-react';
 
 export default async function Admin() {
   const u = await getSession();
@@ -13,7 +13,9 @@ export default async function Admin() {
   const { prisma } = await import('@/lib/prisma');
   const todayUTC = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z');
 
-  const [visitorsToday, currentInside, activePermits, totalUsers, recentAudits] = await Promise.all([
+  const tomorrowUTC = new Date(todayUTC.getTime() + 24 * 60 * 60 * 1000);
+
+  const [visitorsToday, currentInside, activePermits, totalUsers, recentAudits, exitsToday, expectedToday, cancelledPermits] = await Promise.all([
     prisma.visit.count({ where: { entryAt: { gte: todayUTC } } }),
     prisma.visit.count({ where: { status: 'INSIDE' } }),
     prisma.permit.count({ where: { status: 'APPROVED' } }),
@@ -23,6 +25,14 @@ export default async function Admin() {
       take: 8,
       include: { user: { select: { fullName: true } }, guard: { select: { user: { select: { fullName: true } } } } },
     }),
+    prisma.visit.count({ where: { exitAt: { gte: todayUTC } } }),
+    prisma.permit.count({
+      where: {
+        status: 'APPROVED',
+        visitDate: { gte: todayUTC, lt: tomorrowUTC },
+      },
+    }),
+    prisma.permit.count({ where: { status: 'CANCELLED' } }),
   ]);
 
   const NAV = [
@@ -38,11 +48,17 @@ export default async function Admin() {
     <AppShell user={u} title="Admin Dashboard">
       <PageHeader title="Administrator Dashboard" description="Estate-wide visitor and gate activity." />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatCard label="Visitors today" value={visitorsToday} icon={<Users size={18} />} />
         <StatCard label="Currently inside" value={currentInside} icon={<UserCheck size={18} />} accent />
         <StatCard label="Active permits" value={activePermits} icon={<FileText size={18} />} />
         <StatCard label="Active accounts" value={totalUsers} icon={<Activity size={18} />} />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Entries today" value={visitorsToday} icon={<LogIn size={18} />} />
+        <StatCard label="Exits today" value={exitsToday} icon={<LogOut size={18} />} />
+        <StatCard label="Expected today" value={expectedToday} icon={<Clock size={18} />} />
+        <StatCard label="Cancelled permits" value={cancelledPermits} icon={<XCircle size={18} />} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

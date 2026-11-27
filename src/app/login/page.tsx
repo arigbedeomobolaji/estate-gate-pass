@@ -41,7 +41,7 @@ export default function Login() {
   return (
     <main className="min-h-screen flex">
       {/* Left hero panel */}
-      <div className="afit-gradient-hero hidden lg:flex flex-col justify-between w-[420px] shrink-0 p-10 relative overflow-hidden">
+      <div className="afit-gradient-hero hidden lg:flex flex-col justify-between flex-1 p-12 relative overflow-hidden">
         {/* Decorative orb */}
         <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full" style={{ background: 'oklch(1 0 0 / 0.04)', filter: 'blur(40px)' }} />
         <div className="absolute bottom-10 -left-16 w-64 h-64 rounded-full" style={{ background: 'oklch(0.68 0.145 73 / 0.08)', filter: 'blur(32px)' }} />
@@ -79,7 +79,7 @@ export default function Login() {
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-6" style={{ background: 'var(--background)' }}>
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12" style={{ background: 'var(--background)' }}>
         <div className="w-full max-w-sm">
           {/* Mobile brand */}
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
@@ -144,7 +144,7 @@ export default function Login() {
               </div>
             )}
 
-            <Button type="submit" variant="navy" disabled={busy} className="w-full mt-1 h-10 text-base">
+            <Button type="submit" variant="navy" disabled={busy} className="w-full mt-1 h-11 text-base">
               {busy ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>

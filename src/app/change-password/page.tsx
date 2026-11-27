@@ -90,7 +90,7 @@ export default function ChangePassword() {
                 </div>
               )}
 
-              <Button type="submit" variant="navy" disabled={busy} className="w-full h-10">
+              <Button type="submit" variant="navy" disabled={busy} className="w-full h-11">
                 {busy ? 'Updating…' : 'Set new password'}
               </Button>
             </form>

@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import Badge from '@/components/ui/Badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +9,21 @@ import { Select } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 
+type ChargeStatus = 'PENDING' | 'PAID' | 'WAIVED';
+
 type PermitRow = {
   id: string; permitNumber: string; status: string; permitCategory?: string;
   purpose: string; visitDate: string; visitEndDate?: string; chargeAmount?: number;
+  chargeStatus?: ChargeStatus | null;
   visitor: { fullName: string; phone: string };
   resident: { fullName: string; houseNumber: string };
   visit?: { status: string; entryAt?: string; exitAt?: string; entryGate?: { name: string } } | null;
+};
+
+const CHARGE_STATUS_STYLES: Record<ChargeStatus, { label: string; bg: string; color: string }> = {
+  PENDING: { label: 'Pending',  bg: 'oklch(0.92 0.09 85)',  color: 'oklch(0.42 0.14 73)' },
+  PAID:    { label: 'Paid',     bg: 'oklch(0.90 0.1 145)',  color: 'oklch(0.32 0.12 145)' },
+  WAIVED:  { label: 'Waived',   bg: 'oklch(0.92 0 0)',      color: 'oklch(0.45 0 0)' },
 };
 
 export default function PermitsClient({ initial }: { initial: { permits: PermitRow[]; total: number; pages: number } }) {
@@ -24,6 +34,26 @@ export default function PermitsClient({ initial }: { initial: { permits: PermitR
   const [page, setPage] = useState(1);
   const [data, setData] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const [updatingCharge, setUpdatingCharge] = useState<string | null>(null);
+
+  async function updateChargeStatus(permitId: string, chargeStatus: ChargeStatus) {
+    setUpdatingCharge(permitId);
+    const r = await fetch(`/api/admin/permits/${permitId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chargeStatus }),
+    });
+    setUpdatingCharge(null);
+    if (r.ok) {
+      toast.success('Charge status updated');
+      setData(prev => ({
+        ...prev,
+        permits: prev.permits.map(p => p.id === permitId ? { ...p, chargeStatus } : p),
+      }));
+    } else {
+      toast.error('Failed to update charge status');
+    }
+  }
 
   async function search(p = 1) {
     setBusy(true);
@@ -126,14 +156,14 @@ export default function PermitsClient({ initial }: { initial: { permits: PermitR
           <table className="w-full text-sm">
             <thead>
               <tr className="afit-gradient-soft">
-                {['Permit', 'Visitor', 'Resident / House', 'Date', 'Visit status', 'Permit status'].map(h => (
+                {['Permit', 'Visitor', 'Resident / House', 'Date', 'Visit status', 'Permit status', 'Charge'].map(h => (
                   <th key={h} className="h-10 px-4 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: 'var(--afit-navy)', borderBottom: '1px solid var(--border)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {data.permits.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-sm" style={{ color: 'var(--muted-foreground)' }}>No permits found.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-sm" style={{ color: 'var(--muted-foreground)' }}>No permits found.</td></tr>
               )}
               {data.permits.map(p => (
                 <tr key={p.id} className="hover:bg-muted/40 transition-colors" style={{ borderBottom: '1px solid var(--border)' }}>
@@ -157,6 +187,37 @@ export default function PermitsClient({ initial }: { initial: { permits: PermitR
                     {p.visit?.entryGate?.name && <div className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{p.visit.entryGate.name}</div>}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap"><Badge status={p.status} /></td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {p.permitCategory === 'EXTENDED' ? (
+                      <div className="flex items-center gap-2">
+                        {p.chargeStatus && (
+                          <span
+                            className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{
+                              background: CHARGE_STATUS_STYLES[p.chargeStatus]?.bg,
+                              color: CHARGE_STATUS_STYLES[p.chargeStatus]?.color,
+                            }}
+                          >
+                            {CHARGE_STATUS_STYLES[p.chargeStatus]?.label ?? p.chargeStatus}
+                          </span>
+                        )}
+                        <select
+                          value={p.chargeStatus ?? ''}
+                          disabled={updatingCharge === p.id}
+                          onChange={e => updateChargeStatus(p.id, e.target.value as ChargeStatus)}
+                          className="text-xs border rounded px-1.5 py-1 bg-white"
+                          style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                        >
+                          <option value="" disabled>{p.chargeStatus ? 'Change…' : 'Set status'}</option>
+                          <option value="PENDING">Pending</option>
+                          <option value="PAID">Paid</option>
+                          <option value="WAIVED">Waived</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

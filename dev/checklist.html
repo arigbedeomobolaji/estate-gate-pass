@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SRS Checklist — NAF Estate Access Control v1</title>
+<style>
+  :root {
+    --navy: #1e3659;
+    --navy-light: #2d4f7c;
+    --navy-bg: #f0f4ff;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --green-border: #bbf7d0;
+    --amber: #d97706;
+    --amber-bg: #fffbeb;
+    --amber-border: #fde68a;
+    --blue: #2563eb;
+    --blue-bg: #eff6ff;
+    --blue-border: #bfdbfe;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --red-border: #fecaca;
+    --gray: #6b7280;
+    --gray-bg: #f9fafb;
+    --gray-border: #e5e7eb;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --muted: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: var(--text); font-size: 14px; line-height: 1.5; }
+
+  /* ── Header ── */
+  .header { background: linear-gradient(135deg, #1e3659 0%, #0f2246 55%, #0a1a38 100%); color: white; padding: 28px 32px 24px; }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 20px; }
+  .header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .header p { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 3px; }
+  .header-stats { display: flex; gap: 24px; flex-wrap: wrap; }
+  .stat-pill { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 8px 16px; min-width: 90px; text-align: center; }
+  .stat-pill .num { font-size: 20px; font-weight: 800; }
+  .stat-pill .lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); margin-top: 1px; }
+  .stat-pill.done .num { color: #86efac; }
+  .stat-pill.partial .num { color: #fde68a; }
+  .stat-pill.missing .num { color: #fca5a5; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { background: rgba(255,255,255,0.1); border-radius: 999px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #22c55e); border-radius: 999px; transition: width 0.4s ease; }
+  .progress-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 5px; }
+
+  /* ── Controls ── */
+  .controls { padding: 16px 32px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; position: sticky; top: 0; z-index: 10; }
+  .filter-group { display: flex; gap: 4px; }
+  .filter-btn { padding: 5px 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--gray-bg); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: var(--muted); }
+  .filter-btn:hover { background: var(--navy-bg); border-color: var(--navy); color: var(--navy); }
+  .filter-btn.active { background: var(--navy); border-color: var(--navy); color: white; }
+  .search-box { flex: 1; min-width: 200px; max-width: 320px; }
+  .search-box input { width: 100%; padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; outline: none; transition: border-color 0.15s; }
+  .search-box input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(30,54,89,0.08); }
+  .export-btn { margin-left: auto; padding: 7px 14px; background: var(--navy); color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+  .export-btn:hover { opacity: 0.85; }
+
+  /* ── Layout ── */
+  .content { max-width: 1100px; margin: 0 auto; padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── Section ── */
+  .section { background: white; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .section-header { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: var(--navy-bg); border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+  .section-header:hover { background: #e8eeff; }
+  .section-num { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--navy); background: rgba(30,54,89,0.1); padding: 2px 8px; border-radius: 999px; }
+  .section-title { font-weight: 700; font-size: 14px; color: var(--navy); flex: 1; }
+  .section-progress { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .section-chevron { font-size: 12px; color: var(--muted); transition: transform 0.2s; }
+  .section.collapsed .section-chevron { transform: rotate(-90deg); }
+  .section.collapsed .items-list { display: none; }
+
+  /* ── FR Item ── */
+  .items-list { padding: 4px 0; }
+  .fr-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #f1f5f9; transition: background 0.1s; }
+  .fr-item:last-child { border-bottom: none; }
+  .fr-item:hover { background: #fafbff; }
+  .fr-item.hidden { display: none; }
+  .fr-num { flex-shrink: 0; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; color: white; background: var(--navy); padding: 2px 8px; border-radius: 6px; margin-top: 2px; white-space: nowrap; }
+  .fr-body { flex: 1; min-width: 0; }
+  .fr-title { font-weight: 600; font-size: 13.5px; color: var(--text); margin-bottom: 2px; }
+  .fr-desc { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .fr-notes-row { margin-top: 7px; }
+  .fr-notes-row textarea { width: 100%; font-size: 12px; font-family: inherit; border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; resize: vertical; min-height: 36px; max-height: 100px; color: var(--text); outline: none; transition: border-color 0.15s; }
+  .fr-notes-row textarea:focus { border-color: var(--navy); box-shadow: 0 0 0 2px rgba(30,54,89,0.07); }
+  .fr-notes-row textarea::placeholder { color: var(--muted); }
+  .status-btn { flex-shrink: 0; display: flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px; border: 1.5px solid; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.15s; margin-top: 1px; background: none; }
+
+  /* Status colours */
+  .status-btn.done { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+  .status-btn.done:hover { background: #dcfce7; }
+  .status-btn.partial { color: var(--amber); border-color: var(--amber-border); background: var(--amber-bg); }
+  .status-btn.partial:hover { background: #fef3c7; }
+  .status-btn.verify { color: var(--blue); border-color: var(--blue-border); background: var(--blue-bg); }
+  .status-btn.verify:hover { background: #dbeafe; }
+  .status-btn.missing { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+  .status-btn.missing:hover { background: #fee2e2; }
+
+  /* ── Toast ── */
+  #toast { position: fixed; bottom: 24px; right: 24px; background: var(--navy); color: white; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; transform: translateY(60px); opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 100; }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  @media (max-width: 640px) {
+    .header { padding: 20px 16px 18px; }
+    .controls { padding: 12px 16px; }
+    .content { padding: 16px 16px 40px; }
+    .fr-item { flex-direction: column; gap: 8px; }
+    .status-btn { align-self: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <h1>SRS Functional Requirements Checklist</h1>
+      <p>NAF Base Estate Access Control v1 &nbsp;·&nbsp; Last updated 2026-11-27</p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill done"><div class="num" id="count-done">—</div><div class="lbl">Done</div></div>
+      <div class="stat-pill partial"><div class="num" id="count-partial">—</div><div class="lbl">Partial</div></div>
+      <div class="stat-pill"><div class="num" id="count-verify">—</div><div class="lbl">Verify</div></div>
+      <div class="stat-pill missing"><div class="num" id="count-missing">—</div><div class="lbl">Missing</div></div>
+    </div>
+  </div>
+  <div class="progress-wrap"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <div class="progress-label" id="progress-label">Loading…</div>
+</div>
+
+<div class="controls">
+  <div class="filter-group">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="done">✅ Done</button>
+    <button class="filter-btn" data-filter="partial">⚠️ Partial</button>
+    <button class="filter-btn" data-filter="verify">🔍 Verify</button>
+    <button class="filter-btn" data-filter="missing">❌ Missing</button>
+  </div>
+  <div class="search-box"><input type="text" id="search" placeholder="Search requirements…" /></div>
+  <button class="export-btn" onclick="exportSummary()">⬇ Export Summary</button>
+</div>
+
+<div class="content" id="content"></div>
+<div id="toast"></div>
+
+<script>
+// ── Data ────────────────────────────────────────────────────────────────────
+const SECTIONS = [
+  {
+    id: 's1', num: '4.1', title: 'Authentication & Session Management',
+    items: [
+      { id:'FR-01', title:'Admin-only account provisioning', desc:'All user accounts SHALL be provisioned exclusively by the administrator. No self-registration is permitted.', status:'done' },
+      { id:'FR-02', title:'PERSONNEL login — Service Number or email', desc:'PERSONNEL users SHALL be able to log in with their Service Number or email address plus password.', status:'done' },
+      { id:'FR-03', title:'CIVILIAN login — email only', desc:'CIVILIAN users SHALL log in with their email address plus password (no Service Number).', status:'done' },
+      { id:'FR-04', title:'Forced password change on first login', desc:'On first login, every new account SHALL be forced to change their password before accessing any page. The system SHALL redirect to /change-password.', status:'done' },
+      { id:'FR-05', title:'No route access until password changed', desc:'Until the password is changed, the user SHALL NOT be able to access any other route.', status:'done' },
+      { id:'FR-06', title:'Sessions expire after 8 hours', desc:'Sessions SHALL expire after 8 hours of inactivity. (Verified: maxAge = 60×60×8 in auth.ts)', status:'done' },
+      { id:'FR-07', title:'Role-based redirect on login', desc:'The system SHALL redirect each role to its own dashboard — Resident → /resident, Guard → /guard, Admin → /admin.', status:'done' },
+      { id:'FR-08', title:'Secure HTTP-only session cookie', desc:'The system SHALL maintain a secure, HTTP-only session cookie.', status:'done' },
+      { id:'FR-09', title:'Admin resets any user password', desc:'The administrator SHALL be able to reset any user\'s password and re-trigger the forced change on next login.', status:'done' },
+    ]
+  },
+  {
+    id: 's2', num: '4.2', title: 'Resident — Permit Creation',
+    items: [
+      { id:'FR-10', title:'Single-form permit creation', desc:'A resident SHALL be able to create a visitor permit in a single form.', status:'done' },
+      { id:'FR-11', title:'All required fields collected', desc:'The permit form SHALL collect: visitor name, phone, purpose, visit date, end date (optional), arrival time, departure time, vehicle reg (optional), vehicle type (optional), visitor photo (optional).', status:'done' },
+      { id:'FR-12', title:'Client-side photo resize to 400×400', desc:'The visitor photograph SHALL be uploaded from the resident\'s device, resized client-side to max 400×400 px before submission.', status:'done' },
+      { id:'FR-13', title:'Auto-populate resident details', desc:'The system SHALL auto-populate the resident\'s name and house/flat number; the resident SHALL NOT re-enter their own details.', status:'done' },
+      { id:'FR-14', title:'Auto-approve every resident permit', desc:'The system SHALL automatically approve every permit submitted by a registered resident.', status:'done' },
+      { id:'FR-15', title:'Generate unique permit number and QR code', desc:'On approval, the system SHALL immediately generate a unique permit number (EST-YYYYMMDD-XXXXX) and a unique QR code.', status:'done' },
+      { id:'FR-16', title:'Arrival before departure validation', desc:'Arrival time SHALL be before departure time; the system SHALL reject the form otherwise. (Verified: server-side check at permits/route.ts line 53)', status:'done' },
+      { id:'FR-17', title:'EXTENDED permit charge display before submission', desc:'If duration exceeds the free threshold (default 30 days), the system SHALL classify as EXTENDED and display the applicable charge to the resident before submission.', status:'done' },
+    ]
+  },
+  {
+    id: 's3', num: '4.3', title: 'Resident — Permit Management',
+    items: [
+      { id:'4.3-A', title:'View all permits', desc:'A resident SHALL be able to view all their permits (active, upcoming, completed, cancelled).', status:'done' },
+      { id:'4.3-B', title:'View QR code for active permit', desc:'A resident SHALL be able to view the QR code for any active permit.', status:'done' },
+      { id:'4.3-C', title:'Cancel active permit (pre-entry)', desc:'A resident SHALL be able to cancel an active permit with an optional reason, provided the visitor has not yet entered.', status:'done' },
+      { id:'4.3-D', title:'Real-time visit status on permit', desc:'A resident SHALL be able to see the real-time visit status of each permit (Expected / Inside / Exited / Denied).', status:'done' },
+    ]
+  },
+  {
+    id: 's4', num: '4.4', title: 'Resident — Dashboard',
+    items: [
+      { id:'4.4-A', title:'Dashboard summary stats', desc:'The resident dashboard SHALL display: today\'s expected visitors, visitors currently inside, visitors awaiting arrival, and a shortcut to create a new permit.', status:'done' },
+    ]
+  },
+  {
+    id: 's5', num: '4.5', title: 'Guard — Permit Verification',
+    items: [
+      { id:'FR-24v', title:'Verify permit by QR code scan', desc:'The guard SHALL be able to verify a permit by scanning a QR code.', status:'done' },
+      { id:'FR-25', title:'Verify permit by manual permit number', desc:'The guard SHALL be able to verify a permit by entering the permit number manually.', status:'done' },
+      { id:'FR-26s', title:'Search by visitor / resident / house name', desc:'The guard SHALL be able to search by visitor name or resident name/house number.', status:'done' },
+      { id:'FR-27v', title:'Verification screen shows all details', desc:'The verification screen SHALL display: visitor name, resident name, house/flat, purpose, valid date, valid time window, vehicle details, visitor photograph (if uploaded), and a clear status badge.', status:'done' },
+      { id:'FR-28', title:'Visitor photo prominently on guard screen', desc:'If a visitor photograph was uploaded at permit creation, it SHALL be prominently displayed on the guard\'s verification screen to allow visual confirmation of identity.', status:'done' },
+      { id:'FR-29', title:'Status badge with all states', desc:'The status badge SHALL show one of: VALID · EXPIRED · NOT YET VALID · ALREADY USED · CANCELLED · NOT FOUND.', status:'done' },
+      { id:'FR-30', title:'Verification completes within 3 seconds', desc:'Verification SHALL complete within 3 seconds on a standard mobile data connection.', status:'verify' },
+    ]
+  },
+  {
+    id: 's6', num: '4.6', title: 'Guard — Entry & Exit',
+    items: [
+      { id:'FR-22', title:'Grant entry — record all details', desc:'The guard SHALL be able to grant entry for a VALID permit. The system SHALL record: visitor, resident, house/flat, permit number, gate, guard account, date, and exact entry time.', status:'done' },
+      { id:'FR-23', title:'Prevent double entry', desc:'The system SHALL prevent the same permit being used to grant entry a second time (status becomes INSIDE or EXITED after first use).', status:'done' },
+      { id:'FR-24d', title:'Deny entry with recorded reason', desc:'The guard SHALL be able to deny entry and SHALL be prompted to record a reason.', status:'done' },
+      { id:'FR-25e', title:'Record visitor exit', desc:'The guard SHALL be able to record visitor exit. The system SHALL record: exit gate, exit guard, and exact exit time.', status:'done' },
+      { id:'FR-26d', title:'Guard dashboard — today\'s activity stats', desc:'The guard dashboard SHALL display: visitors currently inside, today\'s expected visitors, recent entries, and visitors awaiting verification.', status:'done' },
+    ]
+  },
+  {
+    id: 's7', num: '4.7', title: 'Notifications',
+    items: [
+      { id:'FR-27n', title:'In-app arrival notification to resident', desc:'Immediately after a guard grants entry, the system SHALL send an in-app notification to the permit\'s resident: "[Visitor name] has arrived at [Gate name] at [HH:MM]."', status:'done' },
+      { id:'FR-28n', title:'Modular notification architecture', desc:'The notification architecture SHALL be modular so that email, SMS, and WhatsApp channels can be added without redesigning the core application.', status:'done' },
+    ]
+  },
+  {
+    id: 's8', num: '4.8', title: 'Administrator — Resident Management',
+    items: [
+      { id:'FR-42', title:'Create individual resident accounts', desc:'The administrator SHALL be able to create individual resident accounts, specifying: full name, email, house/flat number, phone, user sub-type (PERSONNEL / CIVILIAN), and Service Number (required for PERSONNEL only).', status:'done' },
+      { id:'FR-43', title:'Temp password + forced change flag', desc:'On account creation, the system SHALL generate a temporary password and set mustChangePassword = true so the resident is forced to change it on first login.', status:'done' },
+      { id:'FR-44', title:'Bulk import from Excel / CSV', desc:'The administrator SHALL be able to import residents in bulk from an Excel or CSV file containing: full name, email, house/flat number, phone, user sub-type, and (for PERSONNEL) Service Number.', status:'done' },
+      { id:'FR-45', title:'Bulk import row-level validation', desc:'The bulk import SHALL validate each row before writing any records. Any row with a duplicate email or Service Number SHALL be reported as an error without preventing other rows from importing.', status:'done' },
+      { id:'FR-46', title:'Activate / deactivate resident accounts', desc:'The administrator SHALL be able to activate or deactivate any resident account.', status:'done' },
+      { id:'FR-47', title:'Deactivated resident cannot login or create permits', desc:'A deactivated resident SHALL NOT be able to log in or create new permits; existing approved permits for that resident SHALL remain visible for guard reference.', status:'done' },
+      { id:'FR-48', title:'Reset user password with forced change', desc:'The administrator SHALL be able to reset any user\'s password, which SHALL re-trigger the forced password change on next login.', status:'done' },
+    ]
+  },
+  {
+    id: 's9', num: '4.9', title: 'Administrator — Guard & Gate Management',
+    items: [
+      { id:'FR-33', title:'Create / manage guard accounts + gate assignment', desc:'The administrator SHALL be able to create and manage guard accounts and assign each guard to a gate.', status:'done' },
+      { id:'FR-34', title:'Create / rename / deactivate gates', desc:'The administrator SHALL be able to create, rename, and deactivate gates.', status:'done' },
+      { id:'FR-35', title:'Default gates configurable', desc:'Supported gates in v1: Main Gate, Gate 2, FPG Gate, AFIT Gate (configurable via admin panel).', status:'done' },
+    ]
+  },
+  {
+    id: 's10', num: '4.10', title: 'Administrator — Monitoring & Reports',
+    items: [
+      { id:'FR-36', title:'Search permits by multiple criteria', desc:'The administrator SHALL be able to search all permits and visit records by: visitor name, resident name, house/flat number, permit number, vehicle registration, date, gate, and status.', status:'done' },
+      { id:'FR-37', title:'Admin dashboard — expanded stats', desc:'The administrator dashboard SHALL display: visitors today, currently inside, expected today, entries today, exits today, active permits, expired permits, cancelled permits.', status:'done' },
+      { id:'FR-38', title:'Full audit trail', desc:'The administrator SHALL be able to view a full audit trail of: permit creation, cancellation, modification, entry granted/denied, exit recorded, and account changes.', status:'done' },
+      { id:'FR-39', title:'Export visitor history and audit logs', desc:'The administrator SHALL be able to export visitor history and audit logs as reports. PARTIAL: permit/visit history CSV is implemented; audit log export is not yet available.', status:'partial' },
+    ]
+  },
+  {
+    id: 's11', num: '4.11', title: 'Data Retention',
+    items: [
+      { id:'FR-40', title:'Configurable retention period', desc:'Detailed visit records SHALL be retained for a configurable period (default: 60 days). The retention period SHALL be adjustable by the administrator without code changes.', status:'done' },
+    ]
+  },
+  {
+    id: 's12', num: '4.12', title: 'Permit Rules & Charge Classification',
+    items: [
+      { id:'FR-50', title:'Configure permit rule (days / charge / currency)', desc:'The administrator SHALL be able to configure a permit rule specifying: maximum free days (default 30), charge per day beyond the free threshold, and currency (default NGN).', status:'done' },
+      { id:'FR-51', title:'Auto-calculate permit duration', desc:'When a resident submits a permit form, the system SHALL automatically calculate the permit duration in calendar days.', status:'done' },
+      { id:'FR-52', title:'STANDARD classification for short permits', desc:'If the duration is within the free threshold, the permit SHALL be classified as STANDARD with no charge.', status:'done' },
+      { id:'FR-53', title:'EXTENDED classification + total charge display', desc:'If the duration exceeds the free threshold, the system SHALL classify the permit as EXTENDED, calculate the total charge, and display this to the resident before final submission.', status:'done' },
+      { id:'FR-54', title:'Resident must acknowledge EXTENDED charge', desc:'The resident SHALL be required to acknowledge the displayed charge before an EXTENDED permit is submitted.', status:'done' },
+      { id:'FR-55', title:'Charge status per permit (PENDING / PAID / WAIVED)', desc:'Charge status SHALL be tracked per permit: PENDING (charge accrued, not yet paid), PAID, or WAIVED (at administrator discretion).', status:'done' },
+      { id:'FR-56', title:'No online payment processing (by design)', desc:'Online payment processing is out of scope for v1; charge tracking is for administrative record-keeping only. Correctly excluded from implementation.', status:'done' },
+    ]
+  },
+  {
+    id: 's13', num: '4.13', title: 'Progressive Web App & Push Notifications',
+    items: [
+      { id:'FR-57', title:'Installable as PWA', desc:'The application SHALL be installable as a Progressive Web App on Android, iOS (Add to Home Screen), and desktop Chrome/Edge.', status:'done' },
+      { id:'FR-58', title:'PWA manifest with correct fields', desc:'The PWA manifest SHALL declare: app name, short name, icons (192×192 and 512×512), theme colour, background colour, display: standalone, and start_url.', status:'done' },
+      { id:'FR-59', title:'Service worker registration', desc:'A service worker SHALL be registered on first page load to enable PWA install prompts and future offline caching.', status:'done' },
+      { id:'FR-60', title:'Push notification opt-in prompt (once)', desc:'Residents SHALL be prompted (once) to allow Web Push notifications after their first login.', status:'done' },
+      { id:'FR-61', title:'Web Push on visitor arrival', desc:'When a guard grants entry, the system SHALL send a Web Push notification to the resident\'s registered browser/device: "[Visitor name] has arrived at [Gate name] at [HH:MM]."', status:'done' },
+      { id:'FR-62', title:'Persist push subscriptions per device', desc:'Push subscriptions SHALL be persisted per user and per device; a user may have multiple active subscriptions (phone, tablet, desktop).', status:'done' },
+      { id:'FR-63', title:'Fallback to in-app if push not subscribed', desc:'If the resident\'s browser is not subscribed to push notifications, the system SHALL fall back to in-app notification only (no silent failure).', status:'done' },
+    ]
+  },
+];
+
+const STATUS_CONFIG = {
+  done:    { label: '✅ Done',     next: 'verify' },
+  verify:  { label: '🔍 Verify',  next: 'partial' },
+  partial: { label: '⚠️ Partial', next: 'missing' },
+  missing: { label: '❌ Missing', next: 'done' },
+};
+
+// ── State ───────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'naf-checklist-v1';
+let overrides = {};
+let notes = {};
+let activeFilter = 'all';
+let searchQuery = '';
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { const d = JSON.parse(raw); overrides = d.overrides || {}; notes = d.notes || {}; }
+  } catch {}
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ overrides, notes }));
+}
+function getStatus(id, defaultStatus) {
+  return overrides[id] ?? defaultStatus;
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const container = document.getElementById('content');
+  container.innerHTML = '';
+  SECTIONS.forEach(sec => {
+    const el = document.createElement('div');
+    el.className = 'section';
+    el.id = sec.id;
+
+    const doneInSec = sec.items.filter(i => getStatus(i.id, i.status) === 'done').length;
+    const chevron = '▾';
+
+    el.innerHTML = `
+      <div class="section-header" onclick="toggleSection('${sec.id}')">
+        <span class="section-num">${sec.num}</span>
+        <span class="section-title">${sec.title}</span>
+        <span class="section-progress">${doneInSec}/${sec.items.length}</span>
+        <span class="section-chevron">${chevron}</span>
+      </div>
+      <div class="items-list" id="items-${sec.id}"></div>
+    `;
+
+    const list = el.querySelector(`#items-${sec.id}`);
+    sec.items.forEach(item => {
+      const st = getStatus(item.id, item.status);
+      const cfg = STATUS_CONFIG[st];
+      const div = document.createElement('div');
+      div.className = 'fr-item';
+      div.dataset.id = item.id;
+      div.dataset.status = st;
+      div.dataset.text = (item.id + ' ' + item.title + ' ' + item.desc).toLowerCase();
+      div.innerHTML = `
+        <span class="fr-num">${item.id}</span>
+        <div class="fr-body">
+          <div class="fr-title">${item.title}</div>
+          <div class="fr-desc">${item.desc}</div>
+          <div class="fr-notes-row">
+            <textarea placeholder="Add a note or test observation…" data-id="${item.id}">${notes[item.id] || ''}</textarea>
+          </div>
+        </div>
+        <button class="status-btn ${st}" data-id="${item.id}" data-default="${item.status}" title="Click to cycle status">${cfg.label}</button>
+      `;
+      list.appendChild(div);
+    });
+
+    container.appendChild(el);
+  });
+
+  // Event delegation
+  container.querySelectorAll('.status-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const id = btn.dataset.id;
+      const def = btn.dataset.default;
+      const cur = getStatus(id, def);
+      const next = STATUS_CONFIG[cur].next;
+      overrides[id] = next;
+      save();
+      updateItem(id, def);
+      updateStats();
+    });
+  });
+  container.querySelectorAll('textarea[data-id]').forEach(ta => {
+    ta.addEventListener('input', e => {
+      const id = ta.dataset.id;
+      notes[id] = ta.value;
+      save();
+    });
+  });
+
+  applyFilter();
+  updateStats();
+}
+
+function updateItem(id, def) {
+  const st = getStatus(id, def);
+  const cfg = STATUS_CONFIG[st];
+  const btn = document.querySelector(`.status-btn[data-id="${id}"]`);
+  const item = document.querySelector(`.fr-item[data-id="${id}"]`);
+  if (btn) { btn.className = `status-btn ${st}`; btn.textContent = cfg.label; }
+  if (item) { item.dataset.status = st; }
+  applyFilter();
+  // Update section progress
+  SECTIONS.forEach(sec => {
+    const done = sec.items.filter(i => getStatus(i.id, i.status) === 'done').length;
+    const prog = document.querySelector(`#${sec.id} .section-progress`);
+    if (prog) prog.textContent = `${done}/${sec.items.length}`;
+  });
+}
+
+function updateStats() {
+  let done = 0, partial = 0, verify = 0, missing = 0, total = 0;
+  SECTIONS.forEach(sec => sec.items.forEach(item => {
+    total++;
+    const st = getStatus(item.id, item.status);
+    if (st === 'done') done++;
+    else if (st === 'partial') partial++;
+    else if (st === 'verify') verify++;
+    else missing++;
+  }));
+  document.getElementById('count-done').textContent = done;
+  document.getElementById('count-partial').textContent = partial;
+  document.getElementById('count-verify').textContent = verify;
+  document.getElementById('count-missing').textContent = missing;
+  const pct = Math.round((done / total) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${done} of ${total} requirements verified (${pct}%)`;
+}
+
+function applyFilter() {
+  document.querySelectorAll('.fr-item').forEach(el => {
+    const st = el.dataset.status;
+    const txt = el.dataset.text;
+    const matchFilter = activeFilter === 'all' || st === activeFilter;
+    const matchSearch = !searchQuery || txt.includes(searchQuery.toLowerCase());
+    el.classList.toggle('hidden', !matchFilter || !matchSearch);
+  });
+}
+
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+// ── Filter buttons ────────────────────────────────────────────────────────
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    applyFilter();
+  });
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value.trim();
+  applyFilter();
+});
+
+// ── Export ────────────────────────────────────────────────────────────────
+function exportSummary() {
+  const lines = ['NAF Estate Access Control v1 — SRS Checklist Export', '=' .repeat(60), `Generated: ${new Date().toLocaleString()}`, ''];
+  SECTIONS.forEach(sec => {
+    lines.push(`\n${sec.num} ${sec.title}`);
+    lines.push('-'.repeat(50));
+    sec.items.forEach(item => {
+      const st = getStatus(item.id, item.status).toUpperCase().padEnd(8);
+      const note = notes[item.id] ? `  NOTE: ${notes[item.id]}` : '';
+      lines.push(`  [${st}] ${item.id.padEnd(10)} ${item.title}${note}`);
+    });
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'srs-checklist.txt'; a.click();
+  showToast('Summary exported as srs-checklist.txt');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
+load();
+render();
+</script>
+</body>
+</html>
