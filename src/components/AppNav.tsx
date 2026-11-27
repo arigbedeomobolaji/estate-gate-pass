@@ -1,2 +1,2 @@
 import Link from 'next/link'; import LogoutButton from './LogoutButton'; import type {User} from '@/lib/types';
-export default function AppNav({user}:{user:User}){return <header className="topbar"><div className="brand">Estate Access Control</div><div style={{display:'flex',gap:12,alignItems:'center'}}><span style={{fontSize:13}}>{user.fullName} · {user.role}</span><LogoutButton/></div></header>}
+export default function AppNav({user}:{user:User}){return <header className="topbar"><div className="brand">NAF Base Access Control</div><div style={{display:'flex',gap:12,alignItems:'center'}}><span style={{fontSize:13}}>{user.fullName} · {user.role}</span><LogoutButton/></div></header>}

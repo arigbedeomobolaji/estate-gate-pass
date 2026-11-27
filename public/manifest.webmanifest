@@ -1,6 +1,6 @@
 {
-  "name": "Estate Access Control",
-  "short_name": "Estate Access",
+  "name": "NAF Base Access Control",
+  "short_name": "NAF Base Access",
   "description": "Visitor access permit and gate management for NAF Base",
   "start_url": "/",
   "display": "standalone",

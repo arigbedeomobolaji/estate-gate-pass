@@ -12,10 +12,10 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Estate Access Control',
+  title: 'NAF Base Access Control',
   description: 'Visitor access permit and gate management for NAF Base',
   manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Estate Access' },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'NAF Base Access' },
   icons: { icon: '/icons/icon-192x192.png', apple: '/icons/icon-152x152.png' },
 };
 

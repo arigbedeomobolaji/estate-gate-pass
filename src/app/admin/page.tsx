@@ -46,7 +46,7 @@ export default async function Admin() {
 
   return (
     <AppShell user={u} title="Admin Dashboard">
-      <PageHeader title="Administrator Dashboard" description="Estate-wide visitor and gate activity." />
+      <PageHeader title="Administrator Dashboard" description="NAF Base-wide visitor and gate activity." />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatCard label="Visitors today" value={visitorsToday} icon={<Users size={18} />} />

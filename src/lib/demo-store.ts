@@ -10,7 +10,7 @@ const gates: Gate[] = [
 const users: User[] = [
   { id: 'u-resident', email: process.env.DEMO_RESIDENT_EMAIL || 'resident@example.com', fullName: 'Ibrahim Musa', role: 'RESIDENT', userType: 'PERSONNEL', serviceNumber: 'NAF/12345', mustChangePassword: false, active: true, resident: { id: 'r1', houseNumber: 'Block B, Flat 12', phone: '08030000001' } },
   { id: 'u-guard', email: process.env.DEMO_GUARD_EMAIL || 'guard@example.com', fullName: 'Musa Ibrahim', role: 'GUARD', userType: 'PERSONNEL', serviceNumber: 'NAF/67890', mustChangePassword: false, active: true, guard: { id: 'g1', assignedGateId: 'gate-main' } },
-  { id: 'u-admin', email: process.env.DEMO_ADMIN_EMAIL || 'admin@example.com', fullName: 'Estate Administrator', role: 'ADMIN', userType: 'PERSONNEL', mustChangePassword: false, active: true },
+  { id: 'u-admin', email: process.env.DEMO_ADMIN_EMAIL || 'admin@example.com', fullName: 'NAF Base Administrator', role: 'ADMIN', userType: 'PERSONNEL', mustChangePassword: false, active: true },
 ];
 const permits: Permit[] = [];
 const visits = new Map<string, Visit>();

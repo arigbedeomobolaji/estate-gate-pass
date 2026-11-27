@@ -55,8 +55,8 @@ function SidebarContent({ user, onClose }: { user: User; onClose?: () => void })
             <Shield size={16} className="text-white" />
           </div>
           <div>
-            <div className="text-white font-bold text-sm tracking-wide leading-tight">Estate Access</div>
-            <div className="text-[10px] leading-tight" style={{ color: 'oklch(1 0 0 / 0.35)' }}>NAF Base Control</div>
+            <div className="text-white font-bold text-sm tracking-wide leading-tight">NAF Base</div>
+            <div className="text-[10px] leading-tight" style={{ color: 'oklch(1 0 0 / 0.35)' }}>Access Control</div>
           </div>
         </div>
         {onClose && (

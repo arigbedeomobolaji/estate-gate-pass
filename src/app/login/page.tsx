@@ -51,7 +51,7 @@ export default function Login() {
             <Shield size={22} className="text-white" />
           </div>
           <div>
-            <div className="text-white font-extrabold text-base tracking-tight leading-tight">Estate Access Control</div>
+            <div className="text-white font-extrabold text-base tracking-tight leading-tight">NAF Base Access Control</div>
             <div className="text-[11px] font-medium" style={{ color: 'oklch(1 0 0 / 0.45)' }}>NAF Base Visitor Management</div>
           </div>
         </div>
@@ -74,7 +74,7 @@ export default function Login() {
         </div>
 
         <div className="relative text-xs font-medium" style={{ color: 'oklch(1 0 0 / 0.3)' }}>
-          © {new Date().getFullYear()} NAF Base · Estate Access Control
+          © {new Date().getFullYear()} NAF Base · Access Control
         </div>
       </div>
 
@@ -87,7 +87,7 @@ export default function Login() {
             <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 afit-gradient-hero">
               <Shield size={18} className="text-white" />
             </div>
-            <span className="font-extrabold text-base tracking-tight" style={{ color: 'var(--afit-navy)' }}>Estate Access Control</span>
+            <span className="font-extrabold text-base tracking-tight" style={{ color: 'var(--afit-navy)' }}>NAF Base Access Control</span>
           </div>
 
           <div className="mb-9">

@@ -60,7 +60,7 @@ export default function ChangePassword() {
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 afit-gradient-hero">
             <Shield size={18} className="text-white" />
           </div>
-          <span className="font-extrabold text-base tracking-tight" style={{ color: 'var(--afit-navy)' }}>Estate Access Control</span>
+          <span className="font-extrabold text-base tracking-tight" style={{ color: 'var(--afit-navy)' }}>NAF Base Access Control</span>
         </div>
 
         <div className="rounded-2xl bg-white shadow-sm overflow-hidden" style={{ border: '1px solid var(--border)' }}>

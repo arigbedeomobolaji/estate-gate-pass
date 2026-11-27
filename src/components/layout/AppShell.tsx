@@ -10,7 +10,7 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-export default function AppShell({ user, title = 'Estate Access Control', children }: AppShellProps) {
+export default function AppShell({ user, title = 'NAF Base Access Control', children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--background)' }}>
