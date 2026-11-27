@@ -5,9 +5,10 @@ import AppShell from '@/components/layout/AppShell';
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
 import Badge from '@/components/ui/Badge';
+import { Button } from '@/components/ui/button';
 import PushOptIn from '@/components/PushOptIn';
 import { fetchPermits } from '@/lib/data';
-import { Users, Clock, CheckCircle, FileText } from 'lucide-react';
+import { Users, Clock, CheckCircle, FileText, Plus, ArrowRight } from 'lucide-react';
 
 export default async function Resident() {
   const u = await getSession();
@@ -22,9 +23,11 @@ export default async function Resident() {
         title={`Welcome, ${u.fullName.split(' ')[0]}`}
         description={u.resident?.houseNumber ? `House ${u.resident.houseNumber}` : 'Resident Dashboard'}
         action={
-          <Link href="/resident/permits/new" className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ background: 'var(--sidebar)' }}>
-            + New Permit
-          </Link>
+          <Button variant="navy" asChild>
+            <Link href="/resident/permits/new">
+              <Plus size={15} /> New Permit
+            </Link>
+          </Button>
         }
       />
 
@@ -39,8 +42,10 @@ export default async function Resident() {
 
       <div className="rounded-2xl bg-white shadow-sm overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <h2 className="font-semibold text-base m-0">Today's visitors</h2>
-          <Link href="/resident/permits" className="text-sm font-medium" style={{ color: 'var(--afit-navy)' }}>View all →</Link>
+          <h2 className="font-semibold text-base m-0">Today&apos;s visitors</h2>
+          <Link href="/resident/permits" className="text-sm font-semibold flex items-center gap-1 transition-opacity hover:opacity-70" style={{ color: 'var(--afit-navy)' }}>
+            View all <ArrowRight size={13} />
+          </Link>
         </div>
         {todays.length === 0 ? (
           <div className="px-5 py-10 text-center text-sm" style={{ color: 'var(--muted-foreground)' }}>
@@ -50,21 +55,22 @@ export default async function Resident() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  <th className="h-10 px-5 text-left font-medium whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>Visitor</th>
-                  <th className="h-10 px-3 text-left font-medium whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>Time</th>
-                  <th className="h-10 px-3 text-left font-medium whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>Status</th>
-                  <th className="h-10 px-5 text-right font-medium" style={{ color: 'var(--muted-foreground)' }}></th>
+                <tr className="afit-gradient-soft">
+                  {['Visitor', 'Time', 'Status', ''].map(h => (
+                    <th key={h} className={`h-10 px-5 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap ${h === '' ? 'text-right' : ''}`} style={{ color: 'var(--afit-navy)', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {todays.map(p => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td className="px-5 py-3 font-medium whitespace-nowrap">{p.visitor.fullName}</td>
-                    <td className="px-3 py-3 whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>{p.startTime}–{p.endTime}</td>
-                    <td className="px-3 py-3 whitespace-nowrap"><Badge status={p.visit?.status ?? p.status} /></td>
+                  <tr key={p.id} className="hover:bg-muted/40 transition-colors" style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td className="px-5 py-3 font-semibold whitespace-nowrap">{p.visitor.fullName}</td>
+                    <td className="px-5 py-3 whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>{p.startTime}–{p.endTime}</td>
+                    <td className="px-5 py-3 whitespace-nowrap"><Badge status={p.visit?.status ?? p.status} /></td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">
-                      <Link href={`/resident/permits/${p.id}`} className="text-sm font-medium" style={{ color: 'var(--afit-navy)' }}>View</Link>
+                      <Link href={`/resident/permits/${p.id}`} className="text-sm font-semibold flex items-center justify-end gap-1 transition-opacity hover:opacity-70" style={{ color: 'var(--afit-navy)' }}>
+                        View <ArrowRight size={12} />
+                      </Link>
                     </td>
                   </tr>
                 ))}

@@ -1,10 +1,15 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Roboto } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
+import { Toaster } from 'sonner';
 import './globals.css';
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
-const roboto = Roboto({ subsets: ['latin'], weight: ['400', '500', '700', '900'], variable: '--font-roboto-var', display: 'swap' });
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-jakarta',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Estate Access Control',
@@ -24,10 +29,17 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${roboto.variable}`}>
+    <html lang="en" className={jakarta.variable}>
       <body>
         <ServiceWorkerRegistrar />
         {children}
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          duration={4000}
+          toastOptions={{ style: { fontFamily: 'var(--font-jakarta)' } }}
+        />
       </body>
     </html>
   );

@@ -47,7 +47,7 @@ function SidebarContent({ user, onClose }: { user: User; onClose?: () => void })
   const initials = user.fullName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 
   return (
-    <aside className="flex flex-col w-64 h-full shrink-0" style={{ background: 'var(--sidebar)', color: 'var(--sidebar-foreground)' }}>
+    <aside className="afit-sidebar-gradient flex flex-col w-64 h-full shrink-0" style={{ color: 'var(--sidebar-foreground)' }}>
       {/* Brand */}
       <div className="flex items-center justify-between px-5 h-14 shrink-0" style={{ borderBottom: '1px solid var(--sidebar-border)' }}>
         <div className="flex items-center gap-2.5">

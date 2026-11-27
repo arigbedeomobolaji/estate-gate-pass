@@ -1,15 +1,18 @@
 'use client';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import Badge from '@/components/ui/Badge';
-import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Plus, Pencil, Check, X, DoorOpen } from 'lucide-react';
 
 type GateRow = {
   id: string; name: string; description?: string; active: boolean;
   _count: { guards: number; entryVisits: number };
 };
-
-const inputCls = 'h-9 w-full rounded-lg px-3 text-sm outline-none bg-white';
-const inputStyle = { border: '1px solid var(--input)' };
 
 export default function GatesClient({ initialGates }: { initialGates: GateRow[] }) {
   const [gates, setGates] = useState(initialGates);
@@ -18,6 +21,8 @@ export default function GatesClient({ initialGates }: { initialGates: GateRow[] 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<{ id: string; name: string; description: string } | null>(null);
+  const [toggleConfirm, setToggleConfirm] = useState<GateRow | null>(null);
+  const [toggleBusy, setToggleBusy] = useState(false);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -31,6 +36,7 @@ export default function GatesClient({ initialGates }: { initialGates: GateRow[] 
     if (!res.ok) { setError(data.error || 'Unable to create gate'); return; }
     setGates(prev => [...prev, { ...data.gate, _count: { guards: 0, entryVisits: 0 } }]);
     setName(''); setDesc('');
+    toast.success(`Gate "${data.gate.name}" created`);
   }
 
   async function patch(id: string, update: Partial<{ name: string; description: string; active: boolean }>) {
@@ -38,68 +44,97 @@ export default function GatesClient({ initialGates }: { initialGates: GateRow[] 
       method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(update),
     });
     const data = await res.json();
-    if (!res.ok) { alert(data.error || 'Update failed'); return; }
+    if (!res.ok) { toast.error(data.error || 'Update failed'); return; }
     setGates(prev => prev.map(g => g.id === id ? { ...g, ...data.gate } : g));
     setEditing(null);
+    return data;
+  }
+
+  async function confirmToggle() {
+    if (!toggleConfirm) return;
+    setToggleBusy(true);
+    await patch(toggleConfirm.id, { active: !toggleConfirm.active });
+    toast.success(`Gate "${toggleConfirm.name}" ${toggleConfirm.active ? 'deactivated' : 'activated'}`);
+    setToggleBusy(false);
+    setToggleConfirm(null);
   }
 
   return (
     <div className="max-w-4xl flex flex-col gap-5">
+      <ConfirmDialog
+        open={!!toggleConfirm}
+        title={toggleConfirm?.active ? 'Deactivate Gate?' : 'Activate Gate?'}
+        description={toggleConfirm?.active
+          ? `Guards will no longer be able to use "${toggleConfirm?.name}" for entry/exit.`
+          : `Restore "${toggleConfirm?.name}" for use at the gate.`}
+        confirmLabel={toggleConfirm?.active ? 'Deactivate' : 'Activate'}
+        destructive={!!toggleConfirm?.active}
+        loading={toggleBusy}
+        onConfirm={confirmToggle}
+        onCancel={() => setToggleConfirm(null)}
+      />
+
       {/* Add gate */}
-      <div className="rounded-2xl bg-white shadow-sm overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-        <div className="flex items-center gap-2 px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <Plus size={16} style={{ color: 'var(--afit-navy)' }} />
-          <h2 className="font-semibold text-base m-0">Add Gate</h2>
-        </div>
-        <form onSubmit={create} className="p-5 flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Gate name *</label>
-              <input className={inputCls} style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Main Gate" required />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'oklch(0.38 0.28 265 / 0.1)', color: 'var(--afit-navy)' }}>
+              <Plus size={16} />
             </div>
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Description</label>
-              <input className={inputCls} style={inputStyle} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Primary visitor entrance" />
-            </div>
+            <CardTitle>Add Gate</CardTitle>
           </div>
-          {error && (
-            <div className="rounded-lg px-3 py-2.5 text-sm" style={{ background: 'oklch(0.577 0.245 27.325 / 0.08)', color: 'var(--danger)', border: '1px solid oklch(0.577 0.245 27.325 / 0.2)' }}>
-              {error}
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={create} className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Gate name *</Label>
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Main Gate" required />
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Primary visitor entrance" />
+              </div>
             </div>
-          )}
-          <div>
-            <button type="submit" disabled={busy} className="h-9 px-4 rounded-lg text-sm font-medium text-white disabled:opacity-60" style={{ background: 'var(--sidebar)' }}>
-              {busy ? 'Creating…' : 'Add gate'}
-            </button>
-          </div>
-        </form>
-      </div>
+            {error && (
+              <div className="rounded-lg px-3 py-2.5 text-sm" style={{ background: 'oklch(0.577 0.245 27.325 / 0.08)', color: 'var(--danger)', border: '1px solid oklch(0.577 0.245 27.325 / 0.2)' }}>
+                {error}
+              </div>
+            )}
+            <div>
+              <Button type="submit" variant="navy" disabled={busy}>
+                <DoorOpen size={15} /> {busy ? 'Creating…' : 'Add gate'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       {/* Gates table */}
-      <div className="rounded-2xl bg-white shadow-sm overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-        <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <h2 className="font-semibold text-base m-0">All Gates ({gates.length})</h2>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>All Gates ({gates.length})</CardTitle>
+        </CardHeader>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <tr className="afit-gradient-soft">
                 {['Name', 'Description', 'Guards', 'Total entries', 'Status', ''].map(h => (
-                  <th key={h} className="h-10 px-4 text-left font-medium whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
+                  <th key={h} className="h-10 px-4 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: 'var(--afit-navy)', borderBottom: '1px solid var(--border)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {gates.map(g => (
-                <tr key={g.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                <tr key={g.id} className="hover:bg-muted/40 transition-colors" style={{ borderBottom: '1px solid var(--border)' }}>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {editing?.id === g.id
-                      ? <input className={inputCls} style={{ ...inputStyle, width: 160 }} value={editing.name} onChange={e => setEditing(x => x && { ...x, name: e.target.value })} />
-                      : <span className="font-medium">{g.name}</span>}
+                      ? <Input value={editing.name} onChange={e => setEditing(x => x && { ...x, name: e.target.value })} className="w-40" />
+                      : <span className="font-semibold">{g.name}</span>}
                   </td>
                   <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)', minWidth: 160 }}>
                     {editing?.id === g.id
-                      ? <input className={inputCls} style={{ ...inputStyle, width: 200 }} value={editing.description} onChange={e => setEditing(x => x && { ...x, description: e.target.value })} />
+                      ? <Input value={editing.description} onChange={e => setEditing(x => x && { ...x, description: e.target.value })} className="w-48" />
                       : g.description || '—'}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>{g._count.guards}</td>
@@ -109,15 +144,21 @@ export default function GatesClient({ initialGates }: { initialGates: GateRow[] 
                     <div className="flex gap-2">
                       {editing?.id === g.id ? (
                         <>
-                          <button className="h-7 px-3 rounded-lg text-xs font-medium text-white" style={{ background: 'var(--sidebar)' }} onClick={() => patch(g.id, { name: editing.name, description: editing.description })}>Save</button>
-                          <button className="h-7 px-3 rounded-lg text-xs font-medium transition-colors" style={{ border: '1px solid var(--border)', background: 'white' }} onClick={() => setEditing(null)}>Cancel</button>
+                          <Button size="xs" variant="navy" onClick={() => patch(g.id, { name: editing.name, description: editing.description })}>
+                            <Check size={12} /> Save
+                          </Button>
+                          <Button size="xs" variant="outline" onClick={() => setEditing(null)}>
+                            <X size={12} /> Cancel
+                          </Button>
                         </>
                       ) : (
                         <>
-                          <button className="h-7 px-3 rounded-lg text-xs font-medium transition-colors" style={{ border: '1px solid var(--border)', background: 'white' }} onClick={() => setEditing({ id: g.id, name: g.name, description: g.description || '' })}>Edit</button>
-                          <button className={`h-7 px-3 rounded-lg text-xs font-medium transition-colors ${g.active ? 'text-red-600 bg-red-50 border border-red-200' : ''}`} style={!g.active ? { border: '1px solid var(--border)', background: 'white' } : {}} onClick={() => patch(g.id, { active: !g.active })}>
+                          <Button size="xs" variant="outline" onClick={() => setEditing({ id: g.id, name: g.name, description: g.description || '' })}>
+                            <Pencil size={12} /> Edit
+                          </Button>
+                          <Button size="xs" variant={g.active ? 'destructive' : 'success'} onClick={() => setToggleConfirm(g)}>
                             {g.active ? 'Deactivate' : 'Activate'}
-                          </button>
+                          </Button>
                         </>
                       )}
                     </div>
@@ -127,7 +168,7 @@ export default function GatesClient({ initialGates }: { initialGates: GateRow[] 
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

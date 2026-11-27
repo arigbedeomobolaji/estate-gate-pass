@@ -1,7 +1,14 @@
 'use client';
 import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 import Badge from '@/components/ui/Badge';
-import { UserPlus, Upload, Users, KeyRound, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { UserPlus, Upload, Users, KeyRound, X, UserCog, RotateCcw } from 'lucide-react';
 
 type UserRow = {
   id: string; email: string; fullName: string; role: string; userType: string;
@@ -19,9 +26,6 @@ const EMPTY: FormState = {
   serviceNumber: '', houseNumber: '', phone: '', assignedGateId: '',
 };
 
-const inputCls = 'h-9 w-full rounded-lg px-3 text-sm outline-none bg-white';
-const inputStyle = { border: '1px solid var(--input)' };
-
 export default function AdminUsersClient({ initialUsers, gates }: { initialUsers: UserRow[]; gates: Gate[] }) {
   const [tab, setTab] = useState<'list' | 'create' | 'bulk'>('list');
   const [users, setUsers] = useState(initialUsers);
@@ -30,13 +34,14 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
   const [error, setError] = useState('');
   const [created, setCreated] = useState<{ tempPassword: string; name: string; login: string } | null>(null);
   const [bulkResult, setBulkResult] = useState<{ created: number; failed: { row: number; name: string; error: string }[]; credentials: { name: string; email: string; login: string; tempPassword: string }[] } | null>(null);
-  const [actionBusy, setActionBusy] = useState<string>('');
+  const [confirm, setConfirm] = useState<{ userId: string; action: 'deactivate' | 'activate' | 'reset-password'; name: string } | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const set = (k: string, v: string) => setForm(x => ({ ...x, [k]: v }));
 
   async function submitCreate(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true); setError(''); setCreated(null);
+    setBusy(true); setError('');
     const res = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -53,6 +58,7 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
     setUsers(prev => [data.user, ...prev]);
     setForm(EMPTY);
     setTab('list');
+    toast.success(`Account created for ${data.user.fullName}`);
   }
 
   async function submitBulk(e: React.FormEvent) {
@@ -67,25 +73,29 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
     setBusy(false);
     if (!res.ok) { setError(data.error || 'Import failed'); return; }
     setBulkResult(data);
+    toast.success(`${data.created} account${data.created !== 1 ? 's' : ''} imported`);
     const listRes = await fetch('/api/admin/users');
     const listData = await listRes.json();
     if (listData.users) setUsers(listData.users);
     if (fileRef.current) fileRef.current.value = '';
   }
 
-  async function userAction(userId: string, action: string) {
-    setActionBusy(userId + action);
-    const res = await fetch(`/api/admin/users/${userId}`, {
-      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action }),
+  async function confirmAction() {
+    if (!confirm) return;
+    setActionBusy(true);
+    const res = await fetch(`/api/admin/users/${confirm.userId}`, {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: confirm.action }),
     });
     const data = await res.json();
-    setActionBusy('');
-    if (!res.ok) { alert(data.error || 'Action failed'); return; }
-    if (action === 'reset-password') {
-      const user = users.find(u => u.id === userId);
-      setCreated({ tempPassword: data.tempPassword, name: user?.fullName || '', login: user?.serviceNumber || user?.email || '' });
+    setActionBusy(false);
+    setConfirm(null);
+    if (!res.ok) { toast.error(data.error || 'Action failed'); return; }
+    if (confirm.action === 'reset-password') {
+      setCreated({ tempPassword: data.tempPassword, name: confirm.name, login: users.find(u => u.id === confirm.userId)?.serviceNumber || users.find(u => u.id === confirm.userId)?.email || '' });
+      toast.success('Password reset — share credentials with user');
     } else {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, active: data.active } : u));
+      setUsers(prev => prev.map(u => u.id === confirm.userId ? { ...u, active: data.active } : u));
+      toast.success(confirm.action === 'deactivate' ? `${confirm.name} deactivated` : `${confirm.name} activated`);
     }
   }
 
@@ -97,6 +107,23 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
 
   return (
     <div className="max-w-5xl flex flex-col gap-5">
+      <ConfirmDialog
+        open={!!confirm}
+        title={confirm?.action === 'reset-password' ? 'Reset Password?' : confirm?.action === 'deactivate' ? 'Deactivate Account?' : 'Activate Account?'}
+        description={
+          confirm?.action === 'reset-password'
+            ? `Generate a new temporary password for ${confirm?.name}. They will be required to change it on next login.`
+            : confirm?.action === 'deactivate'
+            ? `${confirm?.name} will no longer be able to sign in.`
+            : `Restore access for ${confirm?.name}.`
+        }
+        confirmLabel={confirm?.action === 'reset-password' ? 'Reset' : confirm?.action === 'deactivate' ? 'Deactivate' : 'Activate'}
+        destructive={confirm?.action === 'deactivate'}
+        loading={actionBusy}
+        onConfirm={confirmAction}
+        onCancel={() => setConfirm(null)}
+      />
+
       {/* Credentials banner */}
       {created && (
         <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: 'oklch(0.52 0.15 145 / 0.1)', border: '1px solid oklch(0.52 0.15 145 / 0.25)' }}>
@@ -119,111 +146,99 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
       {/* Tab bar */}
       <div className="flex gap-2 flex-wrap">
         {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => { setTab(t.id); setError(''); }}
-            className="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium transition-colors"
-            style={tab === t.id
-              ? { background: 'var(--sidebar)', color: 'white' }
-              : { border: '1px solid var(--border)', background: 'white', color: 'var(--foreground)' }
-            }
-          >
+          <Button key={t.id} variant={tab === t.id ? 'navy' : 'outline'} size="sm" onClick={() => { setTab(t.id); setError(''); }}>
             {t.icon}{t.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* CREATE TAB */}
       {tab === 'create' && (
-        <div className="rounded-2xl bg-white shadow-sm overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-            <h2 className="font-semibold text-base m-0">Create Account</h2>
-          </div>
-          <form onSubmit={submitCreate} className="p-5 flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Full name *</label>
-                <input className={inputCls} style={inputStyle} value={form.fullName} onChange={e => set('fullName', e.target.value)} required />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Email address *</label>
-                <input type="email" className={inputCls} style={inputStyle} value={form.email} onChange={e => set('email', e.target.value)} required />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Role *</label>
-                <select className={inputCls} style={inputStyle} value={form.role} onChange={e => set('role', e.target.value)}>
-                  <option value="RESIDENT">Resident</option>
-                  <option value="GUARD">Guard</option>
-                  <option value="ADMIN">Admin</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">User type *</label>
-                <select className={inputCls} style={inputStyle} value={form.userType} onChange={e => set('userType', e.target.value)}>
-                  <option value="PERSONNEL">Personnel (has Service Number)</option>
-                  <option value="CIVILIAN">Civilian (no Service Number)</option>
-                </select>
-              </div>
-            </div>
-            {form.userType === 'PERSONNEL' && (
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Service Number *</label>
-                <input className={inputCls} style={inputStyle} value={form.serviceNumber} onChange={e => set('serviceNumber', e.target.value)} placeholder="NAF/12345" />
-              </div>
-            )}
-            {form.role === 'RESIDENT' && (
+        <Card>
+          <CardHeader><CardTitle>Create Account</CardTitle></CardHeader>
+          <CardContent>
+            <form onSubmit={submitCreate} className="flex flex-col gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">House / flat number *</label>
-                  <input className={inputCls} style={inputStyle} value={form.houseNumber} onChange={e => set('houseNumber', e.target.value)} placeholder="Block B, Flat 12" />
+                  <Label>Full name *</Label>
+                  <Input value={form.fullName} onChange={e => set('fullName', e.target.value)} required />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Phone *</label>
-                  <input className={inputCls} style={inputStyle} value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="08030000001" />
+                  <Label>Email address *</Label>
+                  <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} required />
                 </div>
               </div>
-            )}
-            {form.role === 'GUARD' && gates.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Role *</Label>
+                  <Select value={form.role} onChange={e => set('role', e.target.value)}>
+                    <option value="RESIDENT">Resident</option>
+                    <option value="GUARD">Guard</option>
+                    <option value="ADMIN">Admin</option>
+                  </Select>
+                </div>
+                <div>
+                  <Label>User type *</Label>
+                  <Select value={form.userType} onChange={e => set('userType', e.target.value)}>
+                    <option value="PERSONNEL">Personnel (has Service Number)</option>
+                    <option value="CIVILIAN">Civilian (no Service Number)</option>
+                  </Select>
+                </div>
+              </div>
+              {form.userType === 'PERSONNEL' && (
+                <div>
+                  <Label>Service Number *</Label>
+                  <Input value={form.serviceNumber} onChange={e => set('serviceNumber', e.target.value)} placeholder="NAF/12345" />
+                </div>
+              )}
+              {form.role === 'RESIDENT' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label>House / flat number *</Label>
+                    <Input value={form.houseNumber} onChange={e => set('houseNumber', e.target.value)} placeholder="Block B, Flat 12" />
+                  </div>
+                  <div>
+                    <Label>Phone *</Label>
+                    <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="08030000001" />
+                  </div>
+                </div>
+              )}
+              {form.role === 'GUARD' && gates.length > 0 && (
+                <div>
+                  <Label>Assigned gate</Label>
+                  <Select value={form.assignedGateId} onChange={e => set('assignedGateId', e.target.value)}>
+                    <option value="">— Unassigned —</option>
+                    {gates.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </Select>
+                </div>
+              )}
+              {error && (
+                <div className="rounded-lg px-3 py-2.5 text-sm" style={{ background: 'oklch(0.577 0.245 27.325 / 0.08)', color: 'var(--danger)', border: '1px solid oklch(0.577 0.245 27.325 / 0.2)' }}>
+                  {error}
+                </div>
+              )}
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Assigned gate</label>
-                <select className={inputCls} style={inputStyle} value={form.assignedGateId} onChange={e => set('assignedGateId', e.target.value)}>
-                  <option value="">— Unassigned —</option>
-                  {gates.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
+                <Button type="submit" variant="navy" disabled={busy}>
+                  <UserPlus size={15} /> {busy ? 'Creating…' : 'Create account'}
+                </Button>
               </div>
-            )}
-
-            {error && (
-              <div className="rounded-lg px-3 py-2.5 text-sm" style={{ background: 'oklch(0.577 0.245 27.325 / 0.08)', color: 'var(--danger)', border: '1px solid oklch(0.577 0.245 27.325 / 0.2)' }}>
-                {error}
-              </div>
-            )}
-
-            <div>
-              <button type="submit" disabled={busy} className="h-9 px-4 rounded-lg text-sm font-medium text-white disabled:opacity-60" style={{ background: 'var(--sidebar)' }}>
-                {busy ? 'Creating…' : 'Create account'}
-              </button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {/* BULK TAB */}
       {tab === 'bulk' && (
-        <div className="rounded-2xl bg-white shadow-sm overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-            <h2 className="font-semibold text-base m-0">Bulk Import Residents</h2>
-          </div>
-          <div className="p-5 flex flex-col gap-4">
+        <Card>
+          <CardHeader><CardTitle>Bulk Import Residents</CardTitle></CardHeader>
+          <CardContent className="flex flex-col gap-4">
             <p className="text-sm m-0" style={{ color: 'var(--muted-foreground)' }}>
               Upload a CSV or Excel file. Required columns: <strong>fullName, email, houseNumber, phone</strong>.<br />
               Optional: <strong>userType</strong> (PERSONNEL or CIVILIAN, default: PERSONNEL), <strong>serviceNumber</strong> (required for PERSONNEL).
             </p>
             <form onSubmit={submitBulk} className="flex flex-col gap-4">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">File (CSV or .xlsx)</label>
+                <Label>File (CSV or .xlsx)</Label>
                 <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="text-sm" />
               </div>
               {error && (
@@ -232,9 +247,9 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
                 </div>
               )}
               <div>
-                <button type="submit" disabled={busy} className="h-9 px-4 rounded-lg text-sm font-medium text-white disabled:opacity-60" style={{ background: 'var(--sidebar)' }}>
-                  {busy ? 'Importing…' : 'Import'}
-                </button>
+                <Button type="submit" variant="navy" disabled={busy}>
+                  <Upload size={15} /> {busy ? 'Importing…' : 'Import'}
+                </Button>
               </div>
             </form>
 
@@ -244,7 +259,6 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
                   <strong>{bulkResult.created} account{bulkResult.created !== 1 ? 's' : ''} created</strong>
                   {bulkResult.failed.length > 0 && <span style={{ color: 'var(--muted-foreground)' }}> · {bulkResult.failed.length} row{bulkResult.failed.length !== 1 ? 's' : ''} skipped</span>}
                 </div>
-
                 {bulkResult.credentials.length > 0 && (
                   <details>
                     <summary className="cursor-pointer text-sm font-semibold mb-2">View temporary passwords ({bulkResult.credentials.length})</summary>
@@ -268,7 +282,6 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
                     </div>
                   </details>
                 )}
-
                 {bulkResult.failed.length > 0 && (
                   <details>
                     <summary className="cursor-pointer text-sm font-semibold mb-2" style={{ color: 'var(--danger)' }}>Errors ({bulkResult.failed.length})</summary>
@@ -294,31 +307,31 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
                 )}
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* LIST TAB */}
       {tab === 'list' && (
-        <div className="rounded-2xl bg-white shadow-sm overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-            <h2 className="font-semibold text-base m-0">All Accounts ({users.length})</h2>
-          </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>All Accounts ({users.length})</CardTitle>
+          </CardHeader>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <tr className="afit-gradient-soft">
                   {['Name', 'Login', 'Role', 'House / Gate', 'Status', ''].map(h => (
-                    <th key={h} className="h-10 px-4 text-left font-medium whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
+                    <th key={h} className="h-10 px-4 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: 'var(--afit-navy)', borderBottom: '1px solid var(--border)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td className="px-4 py-3 whitespace-nowrap font-medium">{u.fullName}</td>
+                  <tr key={u.id} className="hover:bg-muted/40 transition-colors" style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td className="px-4 py-3 whitespace-nowrap font-semibold">{u.fullName}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      {u.serviceNumber && <div className="font-mono text-xs font-semibold">{u.serviceNumber}</div>}
+                      {u.serviceNumber && <div className="font-mono text-xs font-bold">{u.serviceNumber}</div>}
                       <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{u.email}</div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap"><Badge status={u.role} /></td>
@@ -334,22 +347,20 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex gap-2">
-                        <button
-                          disabled={actionBusy === u.id + (u.active ? 'deactivate' : 'activate')}
-                          onClick={() => userAction(u.id, u.active ? 'deactivate' : 'activate')}
-                          className={`h-7 px-3 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${u.active ? 'text-red-600 bg-red-50 border border-red-200' : ''}`}
-                          style={!u.active ? { border: '1px solid var(--border)', background: 'white' } : {}}
+                        <Button
+                          variant={u.active ? 'destructive' : 'success'}
+                          size="xs"
+                          onClick={() => setConfirm({ userId: u.id, action: u.active ? 'deactivate' : 'activate', name: u.fullName })}
                         >
-                          {u.active ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          disabled={actionBusy === u.id + 'reset-password'}
-                          onClick={() => userAction(u.id, 'reset-password')}
-                          className="h-7 px-3 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                          style={{ border: '1px solid var(--border)', background: 'white' }}
+                          <UserCog size={12} /> {u.active ? 'Deactivate' : 'Activate'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => setConfirm({ userId: u.id, action: 'reset-password', name: u.fullName })}
                         >
-                          Reset pwd
-                        </button>
+                          <RotateCcw size={12} /> Reset pwd
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -357,7 +368,7 @@ export default function AdminUsersClient({ initialUsers, gates }: { initialUsers
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -13,9 +13,25 @@ enum Role {
   ADMIN
 }
 
+enum UserType {
+  PERSONNEL
+  CIVILIAN
+}
+
 enum PermitStatus {
   APPROVED
   CANCELLED
+}
+
+enum PermitCategory {
+  STANDARD
+  EXTENDED
+}
+
+enum ChargeStatus {
+  PENDING
+  PAID
+  WAIVED
 }
 
 enum VisitStatus {
@@ -38,21 +54,29 @@ enum AuditAction {
   UPDATE_GATE
   CREATE_GUARD
   UPDATE_GUARD
+  CHANGE_PASSWORD
+  CREATE_USER
+  BULK_CREATE_USERS
 }
 
 model User {
-  id           String         @id @default(cuid())
-  email        String         @unique
-  passwordHash String
-  role         Role
-  fullName     String
-  active       Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  resident     Resident?
-  guard        Guard?
-  auditLogs    AuditLog[]
-  notifications Notification[]
+  id                 String             @id @default(cuid())
+  email              String             @unique
+  passwordHash       String
+  role               Role
+  fullName           String
+  userType           UserType           @default(PERSONNEL)
+  serviceNumber      String?            @unique
+  mustChangePassword Boolean            @default(true)
+  passwordChangedAt  DateTime?
+  active             Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  resident           Resident?
+  guard              Guard?
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
 }
 
 model Resident {
@@ -69,11 +93,11 @@ model Resident {
 }
 
 model Guard {
-  id             String   @id @default(cuid())
-  userId         String   @unique
+  id             String     @id @default(cuid())
+  userId         String     @unique
   assignedGateId String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
   user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignedGate   Gate?      @relation(fields: [assignedGateId], references: [id], onDelete: SetNull)
   entryVisits    Visit[]    @relation("entryGuard")
@@ -89,8 +113,8 @@ model Gate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   guards      Guard[]
-  entryVisits Visit[] @relation("entryGate")
-  exitVisits  Visit[] @relation("exitGate")
+  entryVisits Visit[]  @relation("entryGate")
+  exitVisits  Visit[]  @relation("exitGate")
 }
 
 model Visitor {
@@ -106,25 +130,30 @@ model Visitor {
 }
 
 model Permit {
-  id                   String       @id @default(cuid())
-  permitNumber         String       @unique
-  qrTokenHash          String       @unique
-  residentId           String
-  visitorId            String
-  purpose              String
-  visitDate            DateTime
-  startTime            String
-  endTime              String
-  vehicleRegistration  String?
-  vehicleType          String?
-  status               PermitStatus @default(APPROVED)
-  cancelledAt          DateTime?
-  cancellationReason   String?
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
-  resident             Resident     @relation(fields: [residentId], references: [id])
-  visitor              Visitor      @relation(fields: [visitorId], references: [id])
-  visit                Visit?
+  id                  String          @id @default(cuid())
+  permitNumber        String          @unique
+  qrTokenHash         String          @unique
+  residentId          String
+  visitorId           String
+  purpose             String
+  visitDate           DateTime
+  visitEndDate        DateTime?
+  startTime           String
+  endTime             String
+  vehicleRegistration String?
+  vehicleType         String?
+  visitorPhotoUrl     String?
+  permitCategory      PermitCategory  @default(STANDARD)
+  chargeAmount        Decimal?
+  chargeStatus        ChargeStatus?
+  status              PermitStatus    @default(APPROVED)
+  cancelledAt         DateTime?
+  cancellationReason  String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  resident            Resident        @relation(fields: [residentId], references: [id])
+  visitor             Visitor         @relation(fields: [visitorId], references: [id])
+  visit               Visit?
 
   @@index([residentId, visitDate])
   @@index([visitDate, status])
@@ -169,6 +198,18 @@ model Notification {
   @@index([userId, createdAt])
 }
 
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 model AuditLog {
   id         String      @id @default(cuid())
   userId     String?
@@ -185,6 +226,17 @@ model AuditLog {
   @@index([createdAt])
   @@index([action, createdAt])
   @@index([targetType, targetId])
+}
+
+model PermitRule {
+  id           String   @id @default(cuid())
+  name         String
+  maxFreeDays  Int      @default(30)
+  chargePerDay Decimal?
+  currency     String   @default("NGN")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model SystemSetting {

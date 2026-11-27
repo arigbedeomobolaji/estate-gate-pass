@@ -1,9 +1,15 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import type { PermitRule } from '@/lib/types';
 import { calcPermitCategory } from '@/lib/permit-utils';
-import { Upload, X, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Upload, X, AlertTriangle, Camera, User, Calendar, Car } from 'lucide-react';
 
 async function resizePhoto(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -23,10 +29,6 @@ async function resizePhoto(file: File): Promise<string> {
     img.src = URL.createObjectURL(file);
   });
 }
-
-const inputCls = 'h-9 w-full rounded-lg px-3 text-sm outline-none transition-colors bg-white';
-const inputStyle = { border: '1px solid var(--input)' };
-const labelCls = 'text-sm font-medium mb-1.5 block';
 
 export default function NewPermitClient() {
   const r = useRouter();
@@ -70,7 +72,7 @@ export default function NewPermitClient() {
       setPhoto(resized);
       setPhotoName(file.name);
     } catch {
-      setError('Could not process photo. Please try another image.');
+      toast.error('Could not process photo. Please try another image.');
     }
   }
 
@@ -97,145 +99,154 @@ export default function NewPermitClient() {
     const d = await res.json();
     setBusy(false);
     if (!res.ok) { setError(d.error || 'Unable to create permit'); return; }
+    toast.success('Permit created successfully');
     r.push(`/resident/permits/${d.permit.id}`);
   }
 
   const isExtended = chargeInfo?.category === 'EXTENDED';
 
+  const Section = ({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) => (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'oklch(0.38 0.28 265 / 0.1)', color: 'var(--afit-navy)' }}>
+            {icon}
+          </div>
+          <CardTitle>{title}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+
   return (
     <form onSubmit={submit} className="max-w-2xl flex flex-col gap-5">
       {/* Visitor info */}
-      <div className="rounded-2xl bg-white shadow-sm p-5" style={{ border: '1px solid var(--border)' }}>
-        <h3 className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--muted-foreground)' }}>Visitor Information</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Full Name *</label>
-            <input className={inputCls} style={inputStyle} value={f.fullName} onChange={e => set('fullName', e.target.value)} required placeholder="Visitor full name" />
+      <Section icon={<User size={15} />} title="Visitor Information">
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Full Name *</Label>
+              <Input value={f.fullName} onChange={e => set('fullName', e.target.value)} required placeholder="Visitor full name" />
+            </div>
+            <div>
+              <Label>Phone *</Label>
+              <Input value={f.phone} onChange={e => set('phone', e.target.value)} required placeholder="+234…" />
+            </div>
           </div>
-          <div>
-            <label className={labelCls}>Phone *</label>
-            <input className={inputCls} style={inputStyle} value={f.phone} onChange={e => set('phone', e.target.value)} required placeholder="+234..." />
-          </div>
-        </div>
 
-        {/* Photo upload */}
-        <div className="mt-4">
-          <label className={labelCls}>
-            Photograph <span className="font-normal" style={{ color: 'var(--muted-foreground)' }}>(optional — shown to guard on verification)</span>
-          </label>
-          <div className="flex items-center gap-4">
-            {photo ? (
-              <>
-                <img src={photo} alt="Visitor" className="w-16 h-16 rounded-xl object-cover shrink-0" style={{ border: '1px solid var(--border)' }} />
-                <div>
-                  <div className="text-sm font-medium truncate max-w-[180px]">{photoName}</div>
-                  <div className="flex gap-2 mt-1">
-                    <button type="button" className="text-xs font-medium" style={{ color: 'var(--afit-navy)' }} onClick={() => photoRef.current?.click()}>Change</button>
-                    <button type="button" className="text-xs font-medium" style={{ color: 'var(--danger)' }} onClick={() => { setPhoto(''); setPhotoName(''); if (photoRef.current) photoRef.current.value = ''; }}>Remove</button>
+          <div>
+            <Label className="flex items-center gap-1.5">
+              <Camera size={13} /> Photograph
+              <span className="font-normal text-xs" style={{ color: 'var(--muted-foreground)' }}>(optional)</span>
+            </Label>
+            <div className="flex items-center gap-4">
+              {photo ? (
+                <>
+                  <img src={photo} alt="Visitor" className="w-16 h-16 rounded-xl object-cover shrink-0" style={{ border: '2px solid var(--border)' }} />
+                  <div>
+                    <div className="text-sm font-semibold truncate max-w-[180px]">{photoName}</div>
+                    <div className="flex gap-3 mt-1">
+                      <button type="button" className="text-xs font-semibold transition-opacity hover:opacity-70" style={{ color: 'var(--afit-navy)' }} onClick={() => photoRef.current?.click()}>Change</button>
+                      <button type="button" className="text-xs font-semibold transition-opacity hover:opacity-70" style={{ color: 'var(--danger)' }} onClick={() => { setPhoto(''); setPhotoName(''); if (photoRef.current) photoRef.current.value = ''; }}>Remove</button>
+                    </div>
                   </div>
-                </div>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => photoRef.current?.click()}
-                className="flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium transition-colors"
-                style={{ border: '1px solid var(--border)', background: 'white', color: 'var(--foreground)' }}
-              >
-                <Upload size={14} />
-                Upload photo
-              </button>
-            )}
-            <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+                </>
+              ) : (
+                <Button type="button" variant="outline" size="sm" onClick={() => photoRef.current?.click()}>
+                  <Upload size={14} /> Upload photo
+                </Button>
+              )}
+              <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+            </div>
           </div>
         </div>
-      </div>
+      </Section>
 
       {/* Visit details */}
-      <div className="rounded-2xl bg-white shadow-sm p-5" style={{ border: '1px solid var(--border)' }}>
-        <h3 className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--muted-foreground)' }}>Visit Details</h3>
-
-        <div className="mb-4">
-          <label className={labelCls}>Purpose of visit *</label>
-          <input className={inputCls} style={inputStyle} value={f.purpose} onChange={e => set('purpose', e.target.value)} required />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <Section icon={<Calendar size={15} />} title="Visit Details">
+        <div className="flex flex-col gap-4">
           <div>
-            <label className={labelCls}>Visit date *</label>
-            <input type="date" className={inputCls} style={inputStyle} value={f.visitDate} min={today} onChange={e => { set('visitDate', e.target.value); if (f.visitEndDate < e.target.value) set('visitEndDate', e.target.value); }} required />
+            <Label>Purpose of visit *</Label>
+            <Input value={f.purpose} onChange={e => set('purpose', e.target.value)} required />
           </div>
-          <div className="flex items-end pb-0.5">
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input type="checkbox" checked={f.multiDay} onChange={e => set('multiDay', e.target.checked)} className="w-4 h-4 rounded" />
-              <span>Multi-day permit</span>
-            </label>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Visit date *</Label>
+              <Input type="date" value={f.visitDate} min={today} onChange={e => { set('visitDate', e.target.value); if (f.visitEndDate < e.target.value) set('visitEndDate', e.target.value); }} required />
+            </div>
+            <div className="flex items-end pb-0.5">
+              <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                <input type="checkbox" checked={f.multiDay} onChange={e => set('multiDay', e.target.checked)} className="w-4 h-4 rounded accent-afit-navy" />
+                <span>Multi-day permit</span>
+              </label>
+            </div>
+          </div>
+
+          {f.multiDay && (
+            <div>
+              <Label>End date *</Label>
+              <Input type="date" value={f.visitEndDate} min={f.visitDate} onChange={e => set('visitEndDate', e.target.value)} required={f.multiDay} />
+              {rule && chargeInfo && (
+                <p className="text-xs mt-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                  Duration: <strong>{chargeInfo.days} day{chargeInfo.days !== 1 ? 's' : ''}</strong>
+                  {chargeInfo.days <= rule.maxFreeDays
+                    ? ` — within the ${rule.maxFreeDays}-day free allowance`
+                    : ` — exceeds ${rule.maxFreeDays}-day free limit`}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Expected arrival *</Label>
+              <Input type="time" value={f.startTime} onChange={e => set('startTime', e.target.value)} required />
+            </div>
+            <div>
+              <Label>Expected departure *</Label>
+              <Input type="time" value={f.endTime} onChange={e => set('endTime', e.target.value)} required />
+            </div>
           </div>
         </div>
-
-        {f.multiDay && (
-          <div className="mb-4">
-            <label className={labelCls}>End date *</label>
-            <input type="date" className={inputCls} style={inputStyle} value={f.visitEndDate} min={f.visitDate} onChange={e => set('visitEndDate', e.target.value)} required={f.multiDay} />
-            {rule && chargeInfo && (
-              <p className="text-xs mt-1.5" style={{ color: 'var(--muted-foreground)' }}>
-                Duration: <strong>{chargeInfo.days} day{chargeInfo.days !== 1 ? 's' : ''}</strong>
-                {chargeInfo.days <= rule.maxFreeDays
-                  ? ` — within the ${rule.maxFreeDays}-day free allowance`
-                  : ` — exceeds ${rule.maxFreeDays}-day free limit`}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Expected arrival *</label>
-            <input type="time" className={inputCls} style={inputStyle} value={f.startTime} onChange={e => set('startTime', e.target.value)} required />
-          </div>
-          <div>
-            <label className={labelCls}>Expected departure *</label>
-            <input type="time" className={inputCls} style={inputStyle} value={f.endTime} onChange={e => set('endTime', e.target.value)} required />
-          </div>
-        </div>
-      </div>
+      </Section>
 
       {/* Vehicle */}
-      <div className="rounded-2xl bg-white shadow-sm p-5" style={{ border: '1px solid var(--border)' }}>
-        <h3 className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--muted-foreground)' }}>Vehicle (Optional)</h3>
+      <Section icon={<Car size={15} />} title="Vehicle (Optional)">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Registration</label>
-            <input className={inputCls} style={inputStyle} value={f.vehicleRegistration} onChange={e => set('vehicleRegistration', e.target.value)} placeholder="e.g. LAG-123-XY" />
+            <Label>Registration</Label>
+            <Input value={f.vehicleRegistration} onChange={e => set('vehicleRegistration', e.target.value)} placeholder="e.g. LAG-123-XY" />
           </div>
           <div>
-            <label className={labelCls}>Vehicle type</label>
-            <select className={inputCls} style={inputStyle} value={f.vehicleType} onChange={e => set('vehicleType', e.target.value)}>
+            <Label>Vehicle type</Label>
+            <Select value={f.vehicleType} onChange={e => set('vehicleType', e.target.value)}>
               <option value="">Not specified</option>
               <option>Car</option>
               <option>SUV</option>
               <option>Motorcycle</option>
               <option>Bus</option>
               <option>Other</option>
-            </select>
+            </Select>
           </div>
         </div>
-      </div>
+      </Section>
 
       {/* Extended permit warning */}
       {isExtended && chargeInfo && rule && (
         <div className="rounded-2xl p-5" style={{ background: 'oklch(0.69 0.155 73 / 0.08)', border: '1px solid oklch(0.69 0.155 73 / 0.3)' }}>
           <div className="flex items-start gap-3">
-            <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: 'oklch(0.55 0.155 73)' }} />
+            <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: 'oklch(0.52 0.14 73)' }} />
             <div>
-              <div className="font-semibold mb-1" style={{ color: 'oklch(0.4 0.12 73)' }}>Extended Permit — Charge Applies</div>
+              <div className="font-bold mb-1" style={{ color: 'oklch(0.4 0.12 73)' }}>Extended Permit — Charge Applies</div>
               <p className="text-sm mb-3" style={{ color: 'oklch(0.45 0.1 73)' }}>
                 This permit covers <strong>{chargeInfo.days} days</strong>, exceeding the {rule.maxFreeDays}-day free allowance by{' '}
                 <strong>{chargeInfo.days - rule.maxFreeDays} days</strong>. A charge of{' '}
                 <strong>{rule.currency} {chargeInfo.chargeAmount.toLocaleString()}</strong> will be recorded
                 ({rule.currency} {rule.chargePerDay.toLocaleString()}/day). Payment arranged with the estate office.
               </p>
-              <label className="flex items-start gap-2.5 cursor-pointer text-sm" style={{ color: 'oklch(0.4 0.12 73)' }}>
+              <label className="flex items-start gap-2.5 cursor-pointer text-sm font-medium" style={{ color: 'oklch(0.4 0.12 73)' }}>
                 <input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} className="w-4 h-4 rounded mt-0.5 shrink-0" />
                 <span>I acknowledge the charge of {rule.currency} {chargeInfo.chargeAmount.toLocaleString()} for this extended permit</span>
               </label>
@@ -251,22 +262,12 @@ export default function NewPermitClient() {
       )}
 
       <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={busy || (isExtended && !acknowledged)}
-          className="h-9 px-5 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-50"
-          style={{ background: 'var(--sidebar)' }}
-        >
+        <Button type="submit" variant="navy" disabled={busy || (isExtended && !acknowledged)} size="lg">
           {busy ? 'Creating permit…' : 'Create approved permit'}
-        </button>
-        <button
-          type="button"
-          onClick={() => r.push('/resident/permits')}
-          className="h-9 px-4 rounded-lg text-sm font-medium transition-colors"
-          style={{ border: '1px solid var(--border)', background: 'white', color: 'var(--foreground)' }}
-        >
+        </Button>
+        <Button type="button" variant="outline" size="lg" onClick={() => r.push('/resident/permits')}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );

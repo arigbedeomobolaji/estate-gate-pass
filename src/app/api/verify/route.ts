@@ -1,2 +1,59 @@
-import { NextResponse } from 'next/server'; import { getSession } from '@/lib/auth'; import { verifyDemoPermit } from '@/lib/demo-store'; import { hashToken, validTimeWindow } from '@/lib/permit';
-export async function POST(req:Request){const u=await getSession();if(!u||!['GUARD','ADMIN'].includes(u.role))return NextResponse.json({error:'Guards or administrators only'},{status:403});const {token}=await req.json();if(!token)return NextResponse.json({error:'Token required'},{status:400});if(process.env.DEMO_MODE==='true')return NextResponse.json(verifyDemoPermit(token));const {prisma}=await import('@/lib/prisma');const p=await prisma.permit.findFirst({where:{OR:[{permitNumber:token},{qrTokenHash:hashToken(token)}]},include:{visitor:true,resident:{include:{user:true}},visit:{include:{entryGate:true,exitGate:true}}}});if(!p)return NextResponse.json({ok:false,code:'NOT_FOUND'});const code=p.status==='CANCELLED'?'CANCELLED':validTimeWindow(p.visitDate.toISOString().slice(0,10),p.startTime,p.endTime);const used=p.visit?.status==='INSIDE'||p.visit?.status==='EXITED';return NextResponse.json({ok:code==='VALID'&&!used,code:used?'ALREADY_USED':code,permit:{...p,qrToken:undefined,resident:{id:p.resident.id,fullName:p.resident.user.fullName,houseNumber:p.resident.houseNumber}}});}
+import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth';
+import { verifyDemoPermit } from '@/lib/demo-store';
+import { hashToken, validTimeWindow } from '@/lib/permit';
+
+export async function POST(req: Request) {
+  const u = await getSession();
+  if (!u || !['GUARD', 'ADMIN'].includes(u.role)) {
+    return NextResponse.json({ error: 'Guards or administrators only' }, { status: 403 });
+  }
+  const { token } = await req.json();
+  if (!token) return NextResponse.json({ error: 'Token required' }, { status: 400 });
+
+  if (process.env.DEMO_MODE === 'true') return NextResponse.json(verifyDemoPermit(token));
+
+  const { prisma } = await import('@/lib/prisma');
+  const p = await prisma.permit.findFirst({
+    where: { OR: [{ permitNumber: token }, { qrTokenHash: hashToken(token) }] },
+    include: {
+      visitor: true,
+      resident: { include: { user: true } },
+      visit: { include: { entryGate: true, exitGate: true } },
+    },
+  });
+
+  if (!p) return NextResponse.json({ ok: false, code: 'NOT_FOUND' });
+
+  const code = p.status === 'CANCELLED'
+    ? 'CANCELLED'
+    : validTimeWindow(
+        p.visitDate.toISOString().slice(0, 10),
+        p.startTime,
+        p.endTime,
+        new Date(),
+        p.visitEndDate?.toISOString().slice(0, 10),
+      );
+
+  const used = p.visit?.status === 'INSIDE' || p.visit?.status === 'EXITED';
+
+  return NextResponse.json({
+    ok: code === 'VALID' && !used,
+    code: used ? 'ALREADY_USED' : code,
+    permit: {
+      id: p.id,
+      permitNumber: p.permitNumber,
+      purpose: p.purpose,
+      visitDate: p.visitDate.toISOString().slice(0, 10),
+      visitEndDate: p.visitEndDate?.toISOString().slice(0, 10) ?? null,
+      startTime: p.startTime,
+      endTime: p.endTime,
+      vehicleRegistration: p.vehicleRegistration,
+      vehicleType: p.vehicleType,
+      visitorPhotoUrl: p.visitorPhotoUrl,
+      visitor: { id: p.visitor.id, fullName: p.visitor.fullName, phone: p.visitor.phone },
+      resident: { id: p.resident.id, fullName: p.resident.user.fullName, houseNumber: p.resident.houseNumber },
+      visit: p.visit ? { status: p.visit.status, entryAt: p.visit.entryAt, exitAt: p.visit.exitAt } : null,
+    },
+  });
+}
