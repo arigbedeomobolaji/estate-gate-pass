@@ -13,13 +13,15 @@ import {
 } from '@/components/ui/dialog';
 import {
   CheckCircle, XCircle, AlertCircle, ScanLine, DoorOpen,
-  LogIn, LogOut, UserCheck, Users, Clock, Search,
+  LogIn, LogOut, UserCheck, Users, Clock, Search, WifiOff,
 } from 'lucide-react';
 
 type Gate = { id: string; name: string };
 type VerifyResult = {
   ok: boolean;
   code: string;
+  _cached?: boolean;
+  _cacheAgeSeconds?: number;
   permit?: {
     id: string;
     permitNumber: string;
@@ -55,6 +57,7 @@ const CODE_CONFIG: Record<string, { label: string; icon: React.ReactNode; varian
   CANCELLED:     { label: 'PERMIT CANCELLED',  icon: <XCircle size={20} />,    variant: 'invalid' },
   ALREADY_USED:  { label: 'ALREADY USED',      icon: <AlertCircle size={20} />, variant: 'warn' },
   NOT_FOUND:     { label: 'PERMIT NOT FOUND',  icon: <XCircle size={20} />,    variant: 'invalid' },
+  OFFLINE:       { label: 'NO CONNECTION',     icon: <WifiOff size={20} />,    variant: 'warn' },
 };
 
 const VARIANT_STYLES = {
@@ -104,12 +107,16 @@ export default function GuardClient({ assignedGateId, guardName }: { assignedGat
 
   async function verifyToken(value: string) {
     setResult(null);
-    const r = await fetch('/api/verify', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token: value }),
-    });
-    setResult(await r.json());
+    try {
+      const r = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: value }),
+      });
+      setResult(await r.json());
+    } catch {
+      setResult({ ok: false, code: 'OFFLINE' });
+    }
   }
 
   async function entry() {
@@ -282,7 +289,22 @@ export default function GuardClient({ assignedGateId, guardName }: { assignedGat
           <div className="flex items-center gap-2 mb-4" style={{ color: vstyle.color }}>
             {cfg.icon}
             <span className="font-extrabold text-base tracking-tight">{cfg.label}</span>
+            {result._cached && (
+              <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'oklch(0.69 0.155 73 / 0.15)', color: 'oklch(0.46 0.14 73)' }}>
+                CACHED
+              </span>
+            )}
           </div>
+
+          {result._cached && (
+            <div className="flex items-start gap-2.5 rounded-xl px-4 py-3 mb-4 text-sm" style={{ background: 'oklch(0.69 0.155 73 / 0.08)', border: '1px solid oklch(0.69 0.155 73 / 0.25)', color: 'oklch(0.44 0.13 73)' }}>
+              <WifiOff size={15} className="shrink-0 mt-0.5" />
+              <span>
+                <strong>No network.</strong> Showing cached result from {Math.round((result._cacheAgeSeconds ?? 0) / 60) < 1 ? 'less than a minute' : `${Math.round((result._cacheAgeSeconds ?? 0) / 60)} min`} ago.
+                Entry and exit cannot be recorded until the connection is restored.
+              </span>
+            </div>
+          )}
 
           {p && (
             <>
@@ -322,7 +344,7 @@ export default function GuardClient({ assignedGateId, guardName }: { assignedGat
               {p.visit && <div className="mb-4"><Badge status={p.visit.status} /></div>}
 
               <div className="flex gap-3 flex-wrap">
-                {result.ok && (
+                {result.ok && !result._cached && (
                   <>
                     <Button variant="navy" onClick={entry}>
                       <LogIn size={15} /> Grant entry
@@ -332,10 +354,16 @@ export default function GuardClient({ assignedGateId, guardName }: { assignedGat
                     </Button>
                   </>
                 )}
-                {!result.ok && p.visit?.status === 'INSIDE' && (
+                {!result.ok && p.visit?.status === 'INSIDE' && !result._cached && (
                   <Button variant="navy" onClick={exit}>
                     <LogOut size={15} /> Mark exit
                   </Button>
+                )}
+                {result._cached && (
+                  <p className="text-xs font-semibold" style={{ color: 'oklch(0.46 0.14 73)' }}>
+                    <WifiOff size={12} className="inline mr-1" />
+                    Reconnect to record entry or exit
+                  </p>
                 )}
               </div>
             </>
