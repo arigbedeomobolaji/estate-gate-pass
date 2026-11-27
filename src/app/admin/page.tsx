@@ -4,7 +4,7 @@ import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
-import { Users, UserCheck, FileText, Activity, DoorOpen, ClipboardList, Settings } from 'lucide-react';
+import { Users, UserCheck, FileText, Activity, DoorOpen, ClipboardList, Settings, SlidersHorizontal } from 'lucide-react';
 
 export default async function Admin() {
   const u = await getSession();
@@ -31,6 +31,7 @@ export default async function Admin() {
     { href: '/admin/permits', label: 'Permit Monitoring', desc: 'Search all visitor permits', icon: <FileText size={18} /> },
     { href: '/admin/audit', label: 'Audit Log', desc: 'Full tamper-evident event trail', icon: <ClipboardList size={18} /> },
     { href: '/admin/rules', label: 'Permit Rules', desc: 'Configure free days & charges', icon: <Settings size={18} /> },
+    { href: '/admin/settings', label: 'System Settings', desc: 'Data retention & operational config', icon: <SlidersHorizontal size={18} /> },
   ];
 
   return (

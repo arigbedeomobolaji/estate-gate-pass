@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Shield, Home, FileText, Plus, ScanLine, Users, DoorOpen, ClipboardList, Settings, LogOut, X } from 'lucide-react';
+import { Shield, Home, FileText, Plus, ScanLine, Users, DoorOpen, ClipboardList, Settings, SlidersHorizontal, LogOut, X } from 'lucide-react';
 import type { User } from '@/lib/types';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode };
@@ -30,6 +30,7 @@ function getNavItems(role: string): { section: string; items: NavItem[] }[] {
       { href: '/admin/permits', label: 'Permit Monitoring', icon: <FileText size={16} /> },
       { href: '/admin/audit', label: 'Audit Log', icon: <ClipboardList size={16} /> },
       { href: '/admin/rules', label: 'Permit Rules', icon: <Settings size={16} /> },
+      { href: '/admin/settings', label: 'System Settings', icon: <SlidersHorizontal size={16} /> },
     ],
   }];
 }

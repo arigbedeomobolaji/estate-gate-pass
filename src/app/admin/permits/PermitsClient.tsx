@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Badge from '@/components/ui/Badge';
-import { Search, X } from 'lucide-react';
+import { Search, X, Download } from 'lucide-react';
 
 type PermitRow = {
   id: string; permitNumber: string; status: string; permitCategory?: string;
@@ -43,6 +43,15 @@ export default function PermitsClient({ initial }: { initial: { permits: PermitR
     setTimeout(() => search(1), 0);
   }
 
+  function exportCsv() {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (status) params.set('status', status);
+    if (dateFrom) params.set('from', dateFrom);
+    if (dateTo) params.set('to', dateTo);
+    window.location.href = `/api/admin/export/permits?${params}`;
+  }
+
   return (
     <div className="max-w-6xl flex flex-col gap-5">
       {/* Filters */}
@@ -82,12 +91,15 @@ export default function PermitsClient({ initial }: { initial: { permits: PermitR
               <input type="date" className={inputCls} style={inputStyle} value={dateTo} onChange={e => setDateTo(e.target.value)} />
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <button onClick={() => search(1)} disabled={busy} className="h-9 px-4 rounded-lg text-sm font-medium text-white disabled:opacity-60" style={{ background: 'var(--sidebar)' }}>
               {busy ? 'Searching…' : 'Search'}
             </button>
             <button onClick={clear} className="h-9 px-4 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors" style={{ border: '1px solid var(--border)', background: 'white' }}>
               <X size={13} /> Clear
+            </button>
+            <button onClick={exportCsv} className="h-9 px-4 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ml-auto" style={{ border: '1px solid var(--border)', background: 'white' }}>
+              <Download size={13} /> Export CSV
             </button>
           </div>
         </div>
