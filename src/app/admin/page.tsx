@@ -55,10 +55,8 @@ export default async function Admin() {
               <Link
                 key={n.href}
                 href={n.href}
-                className="flex items-center gap-3 p-3 rounded-xl transition-colors"
+                className="flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-[var(--muted)]"
                 style={{ color: 'var(--foreground)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--muted)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'oklch(0.38 0.28 265 / 0.1)', color: 'var(--afit-navy)' }}>
                   {n.icon}
