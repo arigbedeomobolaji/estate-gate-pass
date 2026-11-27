@@ -17,10 +17,10 @@ async function main() {
   // Admin — mustChangePassword: false so they can log in immediately in dev
   await prisma.user.upsert({
     where: { email: "admin@example.com" },
-    update: { fullName: "Estate Administrator", active: true, mustChangePassword: false },
+    update: { fullName: "NAF Base Administrator", active: true, mustChangePassword: false },
     create: {
       email: "admin@example.com", passwordHash: password, role: Role.ADMIN,
-      fullName: "Estate Administrator", userType: UserType.PERSONNEL,
+      fullName: "NAF Base Administrator", userType: UserType.PERSONNEL,
       serviceNumber: "NAF/ADMIN1", mustChangePassword: false,
     },
   });

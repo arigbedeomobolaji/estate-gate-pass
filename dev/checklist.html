@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>SRS Checklist — NAF Estate Access Control v1</title>
+<title>SRS Checklist — NAF Base Access Control v1</title>
 <style>
   :root {
     --navy: #1e3659;
@@ -120,7 +120,7 @@
   <div class="header-top">
     <div>
       <h1>SRS Functional Requirements Checklist</h1>
-      <p>NAF Base Estate Access Control v1 &nbsp;·&nbsp; Last updated 2026-11-27</p>
+      <p>NAF Base Access Control v1 &nbsp;·&nbsp; Last updated 2026-11-27</p>
     </div>
     <div class="header-stats">
       <div class="stat-pill done"><div class="num" id="count-done">—</div><div class="lbl">Done</div></div>
@@ -274,11 +274,23 @@ const SECTIONS = [
     items: [
       { id:'FR-57', title:'Installable as PWA', desc:'The application SHALL be installable as a Progressive Web App on Android, iOS (Add to Home Screen), and desktop Chrome/Edge.', status:'done' },
       { id:'FR-58', title:'PWA manifest with correct fields', desc:'The PWA manifest SHALL declare: app name, short name, icons (192×192 and 512×512), theme colour, background colour, display: standalone, and start_url.', status:'done' },
-      { id:'FR-59', title:'Service worker registration', desc:'A service worker SHALL be registered on first page load to enable PWA install prompts and future offline caching.', status:'done' },
+      { id:'FR-59', title:'Service worker — registration + caching', desc:'A service worker SHALL be registered on first page load to enable PWA install prompts and future offline caching. IMPLEMENTED: sw.js caches /_next/static/ bundles (cache-first) and visited pages (network-first with offline fallback).', status:'done' },
       { id:'FR-60', title:'Push notification opt-in prompt (once)', desc:'Residents SHALL be prompted (once) to allow Web Push notifications after their first login.', status:'done' },
       { id:'FR-61', title:'Web Push on visitor arrival', desc:'When a guard grants entry, the system SHALL send a Web Push notification to the resident\'s registered browser/device: "[Visitor name] has arrived at [Gate name] at [HH:MM]."', status:'done' },
       { id:'FR-62', title:'Persist push subscriptions per device', desc:'Push subscriptions SHALL be persisted per user and per device; a user may have multiple active subscriptions (phone, tablet, desktop).', status:'done' },
       { id:'FR-63', title:'Fallback to in-app if push not subscribed', desc:'If the resident\'s browser is not subscribed to push notifications, the system SHALL fall back to in-app notification only (no silent failure).', status:'done' },
+    ]
+  },
+  {
+    id: 's14', num: 'Bonus', title: 'Offline Resilience (beyond SRS v1 scope)',
+    items: [
+      { id:'OFL-01', title:'Static asset cache (Level 1a)', desc:'/_next/static/ JS and CSS bundles are cached on first load using a cache-first strategy. On repeat visits the UI renders instantly even without internet — immutable content-hashed filenames make this safe.', status:'done' },
+      { id:'OFL-02', title:'Page cache — network-first with offline fallback (Level 1b)', desc:'Every app page visited while online is cached. On subsequent offline visits the cached page is served. Falls back to /offline.html only if the page was never visited before.', status:'done' },
+      { id:'OFL-03', title:'Guard permit verify cache — 10-min TTL (Level 2)', desc:'POST /api/verify results are cached per token for 10 minutes. If the guard rescans the same permit while offline, the cached result is returned immediately with a _cached: true flag and the age in seconds.', status:'done' },
+      { id:'OFL-04', title:'Guard UI — cached result warning banner', desc:'When a verify result is served from cache, an amber banner displays: "No network. Showing cached result from X min ago." The guard can still view full permit details including visitor photo.', status:'done' },
+      { id:'OFL-05', title:'Guard UI — action buttons disabled when offline', desc:'Grant Entry, Deny Entry, and Mark Exit buttons are hidden/disabled when the result came from cache. A "Reconnect to record entry or exit" message is shown instead, preventing phantom records.', status:'done' },
+      { id:'OFL-06', title:'Guard UI — OFFLINE code on unknown token', desc:'If the guard tries to verify a token not in the cache while offline, the system returns code OFFLINE with a WifiOff badge instead of crashing or hanging.', status:'done' },
+      { id:'OFL-07', title:'Global offline indicator banner', desc:'An amber strip appears at the top of every authenticated page the moment the device loses connectivity, and disappears automatically on reconnection. Uses navigator.onLine + online/offline events.', status:'done' },
     ]
   },
 ];
